@@ -192,7 +192,6 @@ class SimplePrefixTree(Autocompleter):
         """This recalculates the weight for this tree based on the weight of its
         subtrees
         Note: This method is not recursive.
-        >>> from prefix_tree import SimplePrefixTree
         >>> spt = SimplePrefixTree('average')
         >>> spt.insert('hell', 200, ['h','e','l','l'])
         >>> spt.insert('heap', 100, ['h','e', 'a', 'p'])
@@ -223,7 +222,7 @@ class SimplePrefixTree(Autocompleter):
                 2) was previously inserted with the SAME prefix sequence
 
 
-        >>> from prefix_tree import SimplePrefixTree
+
         >>> spt = SimplePrefixTree('sum')
         >>> spt.insert('hello', 20, ['h','e','l','l','o'])
         >>> print(spt)
@@ -330,10 +329,22 @@ class SimplePrefixTree(Autocompleter):
                     return subtree.autocomplete(prefix, limit)
             return []
 
-
     def _get_leaves(self, limit: Optional[int]) -> (List[Tuple[Any, float]]):
         """ The return value is a list with a tuple (value, weight) for each leaf.
         This is ordered in non-increasing weight.
+        >>> spt = SimplePrefixTree("sum")
+        >>> spt._get_leaves(None)
+        []
+        >>> spt.insert('hello', 20, ['h','e','l','l','o'])
+        >>> spt._get_leaves(None)
+        [('hello', 20)]
+        >>> spt.insert('heap', 10, ['h', 'e', 'a', 'p'])
+        >>> spt._get_leaves(None)
+        [('hello', 20), ('heap', 10)]
+        >>> spt._get_leaves(1)
+        [('hello', 20)]
+        >>> spt.subtrees[0].subtrees[0].subtrees[1]._get_leaves(None)
+        [('heap', 10)]
         """
         if self.is_empty():
             return []
@@ -356,8 +367,9 @@ class SimplePrefixTree(Autocompleter):
                     else:
                         merged_leaves.append(new_leaves[b])
                         b += 1
-                    if limit is not None and len(merged_leaves) >= limit:
-                        return merged_leaves[:limit]
+                    if limit is not None:
+                        if len(merged_leaves) >= limit:
+                            return merged_leaves[:limit]
                 if limit is None:
                     while a < len(old_leaves):
                         merged_leaves.append(old_leaves[a])
