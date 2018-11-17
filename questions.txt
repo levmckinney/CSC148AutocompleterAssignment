@@ -1,0 +1,2 @@
+Can a value be a string? (we want this for every "complete" sentence that can be used)
+"Can you put in multiple of the same shit into the tree" Dakota McInnis
