@@ -329,17 +329,19 @@ class SimplePrefixTree(Autocompleter):
                     return subtree.autocomplete(prefix, limit)
             return []
 
+    # TODO: select the version of _get_leaves() we will use (greedy vs. by weight)
     def _get_leaves(self, limit: Optional[int]) -> (List[Tuple[Any, float]]):
+        # THIS VERSION IS BY WEIGHT
         """ The return value is a list with a tuple (value, weight) for each leaf.
         This is ordered in non-increasing weight.
         >>> spt = SimplePrefixTree("sum")
         >>> spt._get_leaves(None)
         []
         >>> spt.insert('hello', 20, ['h','e','l','l','o'])
-        >>> spt._get_leaves(None)
-        [('hello', 20)]
         >>> spt.insert('heap', 10, ['h', 'e', 'a', 'p'])
         >>> spt._get_leaves(None)
+        [('hello', 20), ('heap', 10)]
+        >>> spt._get_leaves(200)
         [('hello', 20), ('heap', 10)]
         >>> spt._get_leaves(1)
         [('hello', 20)]
@@ -353,7 +355,6 @@ class SimplePrefixTree(Autocompleter):
         else:
             # Based of a portion of merge sort. Algorithm putting two sorted
             # list together.
-
             old_leaves = []
             for subtree in self.subtrees:
                 a = 0
@@ -385,6 +386,87 @@ class SimplePrefixTree(Autocompleter):
                         merged_leaves.append(new_leaves[b])
                         b += 1
                 old_leaves = merged_leaves
+            return old_leaves
+
+    def _get_leaves_GREEDY(self, limit: Optional[int]) -> (List[Tuple[Any, float]]):
+        # THIS VERSION IS GREEDY (MOST EFFICIENT)
+        # IF YOU WANT ALL THE OBJECTS, SET THIS LIMIT TO LEN(SELF)
+        """ The return value is a list with a tuple (value, weight) for each leaf.
+        This is ordered in non-increasing weight.
+        >>> spt = SimplePrefixTree("sum")
+        >>> spt.insert('hello', 80, ['h', 'e', 'l', 'l', 'o'])
+        >>> spt.insert('help', 10, ['h', 'e', 'l', 'p'])
+        >>> spt.insert('hell', 20, ['h', 'e', 'l', 'l'])
+        >>> spt.insert('he', 109, ['h', 'e'])
+        >>> spt.insert('heart', 50, ['h', 'e', 'a', 'r', 't'])
+        >>> spt.insert('heal', 45, ['h', 'e', 'a', 'l'])
+        >>> spt.insert('heap', 46, ['h', 'e', 'a', 'p'])
+        >>> spt.insert('heat', 47, ['h', 'e', 'a', 't'])
+        >>> print(spt)
+        [] (407)
+          ['h'] (407)
+            ['h', 'e'] (407)
+              ['h', 'e', 'a'] (188)
+                ['h', 'e', 'a', 'r'] (50)
+                  ['h', 'e', 'a', 'r', 't'] (50)
+                    heart (50)
+                ['h', 'e', 'a', 't'] (47)
+                  heat (47)
+                ['h', 'e', 'a', 'p'] (46)
+                  heap (46)
+                ['h', 'e', 'a', 'l'] (45)
+                  heal (45)
+              ['h', 'e', 'l'] (110)
+                ['h', 'e', 'l', 'l'] (100)
+                  ['h', 'e', 'l', 'l', 'o'] (80)
+                    hello (80)
+                  hell (20)
+                ['h', 'e', 'l', 'p'] (10)
+                  help (10)
+              he (109)
+        <BLANKLINE>
+        >>> spt._get_leaves_GREEDY(None)
+        [('he', 109), ('hello', 80), ('heart', 50), ('heat', 47), ('heap', 46), ('heal', 45), ('hell', 20), ('help', 10)]
+        >>> spt._get_leaves_GREEDY(8)
+        [('he', 109), ('hello', 80), ('heart', 50), ('heat', 47), ('heap', 46), ('heal', 45), ('hell', 20), ('help', 10)]
+        >>> spt._get_leaves_GREEDY(3)
+        [('heart', 50), ('heat', 47), ('heap', 46)]
+        >>> spt.subtrees[0].subtrees[0].subtrees[1]._get_leaves_GREEDY(200)
+        [('hello', 80), ('hell', 20), ('help', 10)]
+        """
+        if self.is_empty():
+            return []
+        elif self.subtrees == []:
+            return [(self.value, self.weight)]
+        else:
+            # Based of a portion of merge sort. Algorithm putting two sorted
+            # list together.
+            if limit is None:
+                limit = len(self)
+            old_leaves = []
+            for subtree in self.subtrees:
+                a = 0
+                b = 0
+                new_leaves = subtree._get_leaves_GREEDY(limit)
+                merged_leaves = []
+                while a < len(old_leaves) and b < len(new_leaves):
+                    if old_leaves[a][1] >= new_leaves[b][1]:
+                        merged_leaves.append(old_leaves[a])
+                        a += 1
+                    else:
+                        merged_leaves.append(new_leaves[b])
+                        b += 1
+                while a < len(old_leaves):
+                    merged_leaves.append(old_leaves[a])
+                    a += 1
+                while b < len(new_leaves):
+                    merged_leaves.append(new_leaves[b])
+                    b += 1
+                old_leaves = merged_leaves
+                if len(subtree) < limit:
+                    limit -= len(subtree)
+                else:
+                    break
             return old_leaves
 
 
