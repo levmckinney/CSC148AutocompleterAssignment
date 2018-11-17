@@ -316,11 +316,54 @@ class SimplePrefixTree(Autocompleter):
         If limit is None, return *every* match for the given prefix.
 
         Precondition: limit is None or limit > 0.
+        >>> spt = SimplePrefixTree("sum")
+        >>> spt.insert('hello', 80, ['h', 'e', 'l', 'l', 'o'])
+        >>> spt.insert('help', 10, ['h', 'e', 'l', 'p'])
+        >>> spt.insert('hell', 20, ['h', 'e', 'l', 'l'])
+        >>> spt.insert('he', 109, ['h', 'e'])
+        >>> spt.insert('heart', 50, ['h', 'e', 'a', 'r', 't'])
+        >>> spt.insert('heal', 45, ['h', 'e', 'a', 'l'])
+        >>> spt.insert('heap', 46, ['h', 'e', 'a', 'p'])
+        >>> spt.insert('heat', 47, ['h', 'e', 'a', 't'])
+        >>> spt.insert('all', 100, ['a', 'l', 'l'])
+        >>> print(spt)
+        [] (507)
+          ['h'] (407)
+            ['h', 'e'] (407)
+              ['h', 'e', 'a'] (188)
+                ['h', 'e', 'a', 'r'] (50)
+                  ['h', 'e', 'a', 'r', 't'] (50)
+                    heart (50)
+                ['h', 'e', 'a', 't'] (47)
+                  heat (47)
+                ['h', 'e', 'a', 'p'] (46)
+                  heap (46)
+                ['h', 'e', 'a', 'l'] (45)
+                  heal (45)
+              ['h', 'e', 'l'] (110)
+                ['h', 'e', 'l', 'l'] (100)
+                  ['h', 'e', 'l', 'l', 'o'] (80)
+                    hello (80)
+                  hell (20)
+                ['h', 'e', 'l', 'p'] (10)
+                  help (10)
+              he (109)
+          ['a'] (100)
+            ['a', 'l'] (100)
+              ['a', 'l', 'l'] (100)
+                all (100)
+        <BLANKLINE>
+        >>> spt.autocomplete([])
+        [('he', 109), ('all', 100), ('hello', 80), ('heart', 50), ('heat', 47), ('heap', 46), ('heal', 45), ('hell', 20), ('help', 10)]
+        >>> spt.autocomplete(['h', 'e'])
+        [('he', 109), ('hello', 80), ('heart', 50), ('heat', 47), ('heap', 46), ('heal', 45), ('hell', 20), ('help', 10)]
+        >>> spt.autocomplete(['h', 'e', 'a'])
+        [('heart', 50), ('heat', 47), ('heap', 46), ('heal', 45)]
         """
         depth = len(self.value)
 
         if len(prefix) == depth:
-            return self._get_leaves(limit)
+            return self._get_leaves_GREEDY(limit)
         else:
             # If we find an existing subtree go done it else non exist
             # and we return an empty list.
