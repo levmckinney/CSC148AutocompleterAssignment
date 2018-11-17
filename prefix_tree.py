@@ -359,6 +359,8 @@ class SimplePrefixTree(Autocompleter):
         [('he', 109), ('hello', 80), ('heart', 50), ('heat', 47), ('heap', 46), ('heal', 45), ('hell', 20), ('help', 10)]
         >>> spt.autocomplete(['h', 'e', 'a'])
         [('heart', 50), ('heat', 47), ('heap', 46), ('heal', 45)]
+        >>> spt.autocomplete(['n', 'o', 'n', 'e'])
+        []
         """
         depth = len(self.value)
 
