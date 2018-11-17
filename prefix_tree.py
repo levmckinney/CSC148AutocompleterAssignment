@@ -122,8 +122,11 @@ class SimplePrefixTree(Autocompleter):
     # tree will be calculated as the 'sum' or the 'average' of the weights of
     # each leaf value in the tree.
     _weight_type: bool
-    # _len is the number of values currently stored in the tree.
+    # _len: is the number of values currently stored in the tree
     _len: int
+    # _summed_weight: this is the sum of the weights inserted into self
+    # regardless of the value of _weight_type.
+    _summed_weight: int
     # === Private Representation invariants ===
     # All trees have the same _weight_type as their subtrees.
     # _len >= 0
@@ -141,6 +144,7 @@ class SimplePrefixTree(Autocompleter):
         self.value = []
         self.subtrees = []
         self.weight = 0.0
+        self._summed_weight = 0.0
         self._weight_type = weight_type
         self._len = 0
 
@@ -188,13 +192,19 @@ class SimplePrefixTree(Autocompleter):
         """This recalculates the weight for this tree based on the weight of its
         subtrees
         Note: This method is not recursive.
+        >>> from prefix_tree import SimplePrefixTree
+        >>> spt = SimplePrefixTree('average')
+        >>> spt.insert('hell', 200, ['h','e','l','l'])
+        >>> spt.insert('heap', 100, ['h','e', 'a', 'p'])
+        >>> spt.insert('hello', 50, ['h','e','l','l','o'])
+        >>> print(spt)
         """
+        self._summed_weight = sum([subtree._summed_weight
+                                   for subtree in self.subtrees])
         if self._weight_type == 'sum':
-            self.weight = sum([subtree.weight for subtree in self.subtrees])
+            self.weight = self._summed_weight
         else: # self._weight_type == 'average'
-            total = sum([subtree.weight for subtree in self.subtrees])
-            number = self.__len__()
-            self.weight = total / number
+            self.weight = self._summed_weight / len(self)
 
     def insert(self, value: Any, weight: float, prefix: List) -> None:
         """Insert the given value into this Autocompleter.
@@ -231,7 +241,7 @@ class SimplePrefixTree(Autocompleter):
         self._insert_helper(value, weight, prefix, 0)
 
     def _insert_helper(self, value: Any, weight: float,
-                       prefix: List, depth: int) -> None:
+                       prefix: List, depth: int) -> None: # TODO This does not need a helper since you can get depth for self.value.__len__()
         """ This allows us to implement insert in a recursive manner,
         through the use of an additional parameter that is our current
         depth with respect to the root node with value '[]'.
@@ -251,6 +261,7 @@ class SimplePrefixTree(Autocompleter):
             subtree = SimplePrefixTree(self._weight_type)
             subtree.value = value  # TODO this is an alias may cause problems for mutble tpyes
             subtree.weight = weight
+            subtree._summed_weight = weight
             subtree._len = 1
             self._add_subtree(subtree)
 
@@ -296,6 +307,73 @@ class SimplePrefixTree(Autocompleter):
         else:  # self.subtrees == []
             self.subtrees.append(subtree)
 
+    def autocomplete(self, prefix: List,
+                     limit: Optional[int] = None) -> List[Tuple[Any, float]]:
+        """Return up to <limit> matches for the given prefix.
+
+        The return value is a list of tuples (value, weight), and must be
+        ordered in non-increasing weight. (You can decide how to break ties.)
+
+        If limit is None, return *every* match for the given prefix.
+
+        Precondition: limit is None or limit > 0.
+        """
+        depth = len(self.value)
+
+        if len(prefix) == depth:
+            return self._get_leaves(limit)
+        else:
+            # If we find an existing subtree go done it else non exist
+            # and we return an empty list.
+            for subtree in self.subtrees:
+                if prefix[:(depth + 1)] == subtree.value:
+                    return subtree.autocomplete(prefix, limit)
+            return []
+
+
+    def _get_leaves(self, limit: Optional[int]) -> (List[Tuple[Any, float]]):
+        """ The return value is a list with a tuple (value, weight) for each leaf.
+        This is ordered in non-increasing weight.
+        """
+        if self.is_empty():
+            return []
+        elif self.subtrees == []:
+            return [(self.value, self.weight)]
+        else:
+            # Based of a portion of merge sort. Algorithm putting two sorted
+            # list together.
+
+            old_leaves = []
+            for subtree in self.subtrees:
+                a = 0
+                b = 0
+                new_leaves = subtree._get_leaves(limit)
+                merged_leaves = []
+                while a < len(old_leaves) and b < len(new_leaves):
+                    if old_leaves[a][1] >= new_leaves[b][1]:
+                        merged_leaves.append(old_leaves[a])
+                        a += 1
+                    else:
+                        merged_leaves.append(new_leaves[b])
+                        b += 1
+                    if limit is not None and len(merged_leaves) >= limit:
+                        return merged_leaves[:limit]
+                if limit is None:
+                    while a < len(old_leaves):
+                        merged_leaves.append(old_leaves[a])
+                        a += 1
+                    while b < len(new_leaves):
+                        merged_leaves.append(new_leaves[b])
+                        b += 1
+                else:
+                    while a < len(old_leaves) and len(merged_leaves) < limit:
+                        merged_leaves.append(old_leaves[a])
+                        a += 1
+                    while b < len(new_leaves) and len(merged_leaves) < limit:
+                        merged_leaves.append(new_leaves[b])
+                        b += 1
+                old_leaves = merged_leaves
+            return old_leaves
 
 
 ################################################################################
