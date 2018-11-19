@@ -1,2 +1,10 @@
 Can a value be a string? (we want this for every "complete" sentence that can be used)
+
 "Can you put in multiple of the same shit into the tree" Dakota McInnis
+
+remove makes some assumtions that are not in the representaion invarients.
+It makes the assumetions that it will only ever be called on the root node of a tree
+  and that there are no repeted non-leaf-non-empty trees in simple tree is that ok?
+
+
+We have used part of the merge sort algorithm in are code are we plagiarizing?

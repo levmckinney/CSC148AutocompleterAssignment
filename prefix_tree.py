@@ -188,23 +188,6 @@ class SimplePrefixTree(Autocompleter):
         # This only counts leaf nodes
         return self._len
 
-    def _calculate_weight(self) -> None:
-        """This recalculates the weight for this tree based on the weight of its
-        subtrees
-        Note: This method is not recursive.
-        >>> spt = SimplePrefixTree('average')
-        >>> spt.insert('hell', 200, ['h','e','l','l'])
-        >>> spt.insert('heap', 100, ['h','e', 'a', 'p'])
-        >>> spt.insert('hello', 50, ['h','e','l','l','o'])
-        >>> print(spt)
-        """
-        self._summed_weight = sum([subtree._summed_weight
-                                   for subtree in self.subtrees])
-        if self._weight_type == 'sum':
-            self.weight = self._summed_weight
-        else: # self._weight_type == 'average'
-            self.weight = self._summed_weight / len(self)
-
     def insert(self, value: Any, weight: float, prefix: List) -> None:
         """Insert the given value into this Autocompleter.
 
@@ -234,26 +217,11 @@ class SimplePrefixTree(Autocompleter):
                   ['h', 'e', 'l', 'l', 'o'] (20)
                     hello (20)
             <BLANKLINE>
-        >>> spt.subtrees[0].subtrees[0].subtrees[0].subtrees[0].subtrees[0].subtrees[0].__len__()
-        1
         """
-        self._insert_helper(value, weight, prefix, 0)
-
-    def _insert_helper(self, value: Any, weight: float,
-                       prefix: List, depth: int) -> None: # TODO This does not need a helper since you can get depth for self.value.__len__()
-        """ This allows us to implement insert in a recursive manner,
-        through the use of an additional parameter that is our current
-        depth with respect to the root node with value '[]'.
-
-        """
+        depth = len(self.value)
         self._len += 1
 
-        subtree_index = None
-
-        # Look for a already matching subtree if it exist we get its index
-        for i in range(0, len(self.subtrees)):
-            if self.subtrees[i].value == prefix[:(depth + 1)]:
-                subtree_index = i
+        subtree_index = self._find_subtree_with_prefix(prefix[:(depth + 1)])
 
         if depth == len(prefix):
             # We have reached the end of the prefix and will add a leaf.
@@ -268,24 +236,13 @@ class SimplePrefixTree(Autocompleter):
             # No prefix exists in the subtree so we add a new subtree.
             subtree = SimplePrefixTree(self._weight_type)
             subtree.value = prefix[:(depth + 1)]
-            subtree._insert_helper(value, weight, prefix, depth + 1)
+            subtree.insert(value, weight, prefix)
             self._add_subtree(subtree)
 
         else:
             # A branch already exists so we go down it.
-            subtree = self.subtrees[subtree_index]
-            subtree._insert_helper(value, weight, prefix, depth + 1)
-
-            # Since insert only makes a tree larger we can swap with the
-            # the subtrees are sorted by weight in non-increasing order
-            left_index = subtree_index - 1
-            while subtree.weight > self.subtrees[left_index].weight \
-                and left_index >= 0:
-                self.subtrees[left_index], self.subtrees[subtree_index] = subtree, self.subtrees[left_index]
-                subtree_index = left_index
-                left_index -= 1
-
-
+            self.subtrees[subtree_index].insert(value, weight, prefix)
+            self._fix_subtree_at_index(subtree_index)
         self._calculate_weight()
 
     def _add_subtree(self, subtree: SimplePrefixTree) -> None:
@@ -305,6 +262,111 @@ class SimplePrefixTree(Autocompleter):
             self.subtrees.insert(i, subtree)
         else:  # self.subtrees == []
             self.subtrees.append(subtree)
+
+    def remove(self, prefix: List) -> None:
+        """Remove all values that match the given prefix.
+        """
+        self._remove_helper(prefix)
+
+    def _remove_helper(self, prefix: List) -> int:
+        """Just like remove but returns number of leaves deleted.
+        """
+        depth = len(self.value)
+
+        if prefix == self.value:
+            # make self empty and return its length
+            self.subtrees = []
+            self.weight = 0.0
+            self._summed_weight = 0.0
+            length = len(self)
+            self._len = 0
+            return length
+        else:
+            subtree_index = self._find_subtree_with_prefix(prefix[:(depth + 1)])
+
+            if subtree_index is not None:
+                subtree = self.subtrees[subtree_index]
+                num_removed = subtree._remove_helper(prefix)
+
+                self._len -= num_removed
+
+                assert self._len >= 0 # TODO for testing remove
+
+                self._calculate_weight()
+
+                if subtree.is_empty():
+                    self.subtrees.remove(subtree)
+
+                    if self.is_empty():
+                        self.value = []
+
+                    # Since removing a subtree will never make the list unsorted
+                    return num_removed
+                else:
+                    if num_removed != 0:
+                        # We found prefix but all subtrees still needed
+                        self._fix_subtree_at_index(subtree_index)
+                    else:
+                        # Prefix was not found
+                        pass
+
+                    return num_removed
+
+    def _calculate_weight(self) -> None:
+        """This recalculates the weight for this tree based on the weight of its
+        subtrees
+        Note: This method is not recursive.
+        >>> spt = SimplePrefixTree('average')
+        >>> spt.insert('hell', 200, ['h','e','l','l'])
+        >>> spt.insert('heap', 100, ['h','e', 'a', 'p'])
+        >>> spt.insert('hello', 50, ['h','e','l','l','o'])
+        >>> print(spt)
+        """
+        self._summed_weight = sum([subtree._summed_weight
+                                   for subtree in self.subtrees])
+        if self._weight_type == 'sum':
+            self.weight = self._summed_weight
+
+        else:  # self._weight_type == 'average'
+            if len(self) == 0:
+                self.weight = 0
+                self._summed_weight = 0
+                return
+
+            self.weight = self._summed_weight / len(self)
+
+    def _find_subtree_with_prefix(self, prefix: list) -> Optional[int]:
+        """Finds a subtree that matches a given  prefix and returns its index
+        or None is it cant find one.
+        """
+        # TODO This makes the assumption there are no non-empty non-leaf subtrees with the same value.
+        for i in range(0, len(self.subtrees)):
+            if self.subtrees[i].value == prefix:
+                return i
+
+    def _fix_subtree_at_index(self, index: int) -> None:
+        """If subtree at index is out of order it fixes that by shifting it
+        left or right
+
+        Precondition:
+        index in range(0, len(self.subtrees))
+        self.subtrees is all sorted except for subtree at index
+        """
+        subtree = self.subtrees[index]
+
+        while True:
+            if index > 0 and subtree.weight > self.subtrees[index - 1].weight:
+                # Switch with index to left
+                self.subtrees[index - 1], self.subtrees[index] = \
+                    subtree, self.subtrees[index - 1]
+            elif (index < len(self.subtrees) - 1
+                  and subtree.weight < self.subtrees[index + 1].weight):
+                # Switch with index to right
+                self.subtrees[index + 1], self.subtrees[index] = \
+                    subtree, self.subtrees[index + 1]
+            else:
+                # Current position ok
+                return
 
     def autocomplete(self, prefix: List,
                      limit: Optional[int] = None) -> List[Tuple[Any, float]]:
@@ -513,7 +575,6 @@ class SimplePrefixTree(Autocompleter):
                 else:
                     break
             return old_leaves
-
 
 ################################################################################
 # CompressedPrefixTree (Task 6)
