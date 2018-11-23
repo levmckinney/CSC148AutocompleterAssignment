@@ -136,7 +136,8 @@ class SentenceAutocompleteEngine:
 
         *Skip lines that do not contain at least one alphanumeric character!*
 
-        When each string is inserted, it is given a weight of one.
+        When each string is inserted, it is given THE WEIGHT SPECIFIED ON THE
+        LINE FROM THE CSV FILE. (Updated Nov 19)
         Note that it is possible for the same string to appear on more than
         one line of the input file; this would result in that string getting
         a larger weight.
@@ -238,6 +239,12 @@ class MelodyAutocompleteEngine:
         """Remove all melodies that match the given interval sequence.
         """
         pass
+
+
+def _senitize(line: str) -> str:
+    """This function takes a string converts it to lower case, removes any
+    non alfanumeric charectors (e.g. \n, !, &, @ ... etc.) white spaces should
+    be included."""
 
 
 ###############################################################################
