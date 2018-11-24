@@ -8,3 +8,5 @@ It makes the assumetions that it will only ever be called on the root node of a 
 
 
 We have used part of the merge sort algorithm in are code are we plagiarizing?
+
+Can a value be a list?

@@ -240,9 +240,39 @@ class MelodyAutocompleteEngine:
 
         Each melody is be inserted into the Autocompleter with a weight of 1.
         """
-        # We haven't given you any starter code here! You should review how
-        # you processed CSV files on Assignment 1.
-        pass
+        if config['autocompleter'] == 'simple':
+            self.autocompleter = SimplePrefixTree(config['weight_type'])
+        elif config['autocompleter'] == 'compressed':
+            self.autocompleter = CompressedPrefixTree(config['weight_type'])
+
+        with open(config['file'], encoding='utf8') as f:
+            reader = csv.reader(f)
+            for row in reader:
+
+                name = row[0]
+                pitch_and_duration = row[1:]
+                n = len(pitch_and_duration)
+
+                notes = []
+
+                # p is the even indexes and  d is the odd indexes
+                for p, d in zip(range(0, n, 2), range(1, n, 2)):
+                    str_note = pitch_and_duration[p], pitch_and_duration[d]
+                    # Stop looking for new notes if we have reached empty stings
+                    if str_note[0] == '' or str_note[1] == '':
+                        break
+                    note = int(str_note[0]), int(str_note[1])
+                    notes.append(note)
+
+                intervals = []
+                for i in range(len(notes) - 1):
+                    # Subtracting pitches of adjacent notes
+                    interval = notes[i + 1][0] - notes[i][0]
+                    intervals.append(interval)
+
+                melody = Melody(name, notes)
+
+                self.autocompleter.insert(melody, 1, intervals)
 
     def autocomplete(self, prefix: List[int],
                      limit: Optional[int] = None) -> List[Tuple[Melody, float]]:
@@ -256,12 +286,12 @@ class MelodyAutocompleteEngine:
         Precondition:
             limit is None or limit > 0
         """
-        pass
+        return self.autocompleter.autocomplete(prefix, limit)
 
     def remove(self, prefix: List[int]) -> None:
         """Remove all melodies that match the given interval sequence.
         """
-        pass
+        self.autocompleter.remove(prefix)
 
 
 def _sanitize(line: str) -> str:
@@ -294,10 +324,6 @@ def _filter_conditions(a: str) -> bool:
         return True
     else:
         return False
-
-
-
-
 
 
 ###############################################################################
@@ -350,4 +376,4 @@ if __name__ == '__main__':
 
     # print(sample_letter_autocomplete())
     # print(sample_sentence_autocomplete())
-    # sample_melody_autocomplete()
+    sample_melody_autocomplete()
