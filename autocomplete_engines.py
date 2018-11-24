@@ -62,11 +62,17 @@ class LetterAutocompleteEngine:
         one line of the input file; this would result in that string getting
         a larger weight (because of how Autocompleter.insert works).
         """
-        # We've opened the file for you here. You should iterate over the
-        # lines of the file and process them according to the description in
-        # this method's docstring.
+        if config['autocompleter'] == 'simple':
+            self.autocompleter = SimplePrefixTree(config['weight_type'])
+        elif config['autocompleter'] == 'compressed':
+            self.autocompleter = CompressedPrefixTree(config['weight_type'])
+
         with open(config['file'], encoding='utf8') as f:
-            pass
+            for dirty_line in f:
+                line = _sanitize(dirty_line)
+                if line != '':
+                    # list return a list of the chars in a sting
+                    self.autocompleter.insert(line, 1.0, list(line))
 
     def autocomplete(self, prefix: str,
                      limit: Optional[int] = None) -> List[Tuple[str, float]]:
@@ -84,7 +90,7 @@ class LetterAutocompleteEngine:
             limit is None or limit > 0
             <prefix> contains only lowercase alphanumeric characters and spaces
         """
-        pass
+        return self.autocompleter.autocomplete(list(prefix), limit)
 
     def remove(self, prefix: str) -> None:
         """Remove all strings that match the given prefix string.
@@ -95,7 +101,7 @@ class LetterAutocompleteEngine:
         Precondition: <prefix> contains only lowercase alphanumeric characters
                       and spaces.
         """
-        pass
+        self.autocompleter.remove(prefix)
 
 
 class SentenceAutocompleteEngine:
@@ -144,7 +150,24 @@ class SentenceAutocompleteEngine:
         """
         # We haven't given you any starter code here! You should review how
         # you processed CSV files on Assignment 1.
-        pass
+        if config['autocompleter'] == 'simple':
+            self.autocompleter = SimplePrefixTree(config['weight_type'])
+        elif config['autocompleter'] == 'compressed':
+            self.autocompleter = CompressedPrefixTree(config['weight_type'])
+
+        with open(config['file'], encoding='utf8') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                dirty_line = row[0]
+                # we split the unsanitized words just in case a word is
+                # separated by a non space, white space char.
+                dirty_words = dirty_line.split()
+                words = [_sanitize(dirty_word) for dirty_word in dirty_words]
+                words = [word for word in words if word != '']
+                weight = float(row[1])
+
+                if words != []:
+                    self.autocompleter.insert(''.join(words), weight, words)
 
     def autocomplete(self, prefix: str,
                      limit: Optional[int] = None) -> List[Tuple[str, float]]:
@@ -162,7 +185,7 @@ class SentenceAutocompleteEngine:
             limit is None or limit > 0
             <prefix> contains only lowercase alphanumeric characters and spaces
         """
-        pass
+        self.autocompleter.autocomplete(prefix.split(), limit)
 
     def remove(self, prefix: str) -> None:
         """Remove all strings that match the given prefix.
@@ -173,7 +196,7 @@ class SentenceAutocompleteEngine:
         Precondition: <prefix> contains only lowercase alphanumeric characters
                       and spaces.
         """
-        pass
+        self.autocompleter.remove(prefix.split())
 
 
 ################################################################################
@@ -241,7 +264,7 @@ class MelodyAutocompleteEngine:
         pass
 
 
-def _senitize(line: str) -> str:
+def _sanitize(line: str) -> str:
     """This function takes a string converts it to lower case, removes any
     non alfanumeric charectors (e.g. \n, !, &, @ ... etc.) white spaces should
     be included."""
@@ -296,5 +319,5 @@ if __name__ == '__main__':
     sys.setrecursionlimit(5000)
 
     # print(sample_letter_autocomplete())
-    # print(sample_sentence_autocomplete())
+    print(sample_sentence_autocomplete())
     # sample_melody_autocomplete()
