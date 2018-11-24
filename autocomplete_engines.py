@@ -167,7 +167,7 @@ class SentenceAutocompleteEngine:
                 weight = float(row[1])
 
                 if words != []:
-                    self.autocompleter.insert(''.join(words), weight, words)
+                    self.autocompleter.insert(' '.join(words), weight, words)
 
     def autocomplete(self, prefix: str,
                      limit: Optional[int] = None) -> List[Tuple[str, float]]:
@@ -185,7 +185,7 @@ class SentenceAutocompleteEngine:
             limit is None or limit > 0
             <prefix> contains only lowercase alphanumeric characters and spaces
         """
-        self.autocompleter.autocomplete(prefix.split(), limit)
+        return self.autocompleter.autocomplete(prefix.split(), limit)
 
     def remove(self, prefix: str) -> None:
         """Remove all strings that match the given prefix.
@@ -349,5 +349,5 @@ if __name__ == '__main__':
     sys.setrecursionlimit(5000)
 
     # print(sample_letter_autocomplete())
-    print(sample_sentence_autocomplete())
+    # print(sample_sentence_autocomplete())
     # sample_melody_autocomplete()
