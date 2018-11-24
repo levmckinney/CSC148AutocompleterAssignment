@@ -266,8 +266,38 @@ class MelodyAutocompleteEngine:
 
 def _sanitize(line: str) -> str:
     """This function takes a string converts it to lower case, removes any
-    non alfanumeric charectors (e.g. \n, !, &, @ ... etc.) white spaces should
-    be included."""
+    non-alphanumeric characters (e.g. \n, !, &, @ ... etc.) white spaces should
+    be included.
+    >>> print(_sanitize("Hello"))
+    hello
+    >>> print(_sanitize("Or '///!sout23hwa32rd to strike the Entwash?'"))
+    or sout23hwa32rd to strike the entwash
+    """
+    line = line.lower()
+    chars = list(line)
+    filtered_chars = filter(_filter_conditions, chars)
+    line = ''.join(filtered_chars)
+    return line
+
+def _filter_conditions(a: str) -> bool:
+    """
+    >>> _filter_conditions('a')
+    True
+    >>> _filter_conditions('123')
+    True
+    >>> _filter_conditions(' ')
+    True
+    >>> _filter_conditions('>')
+    False
+    """
+    if a.isalpha() or a.isnumeric() or a.isspace():
+        return True
+    else:
+        return False
+
+
+
+
 
 
 ###############################################################################

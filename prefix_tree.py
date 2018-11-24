@@ -208,42 +208,78 @@ class SimplePrefixTree(Autocompleter):
 
         >>> spt = SimplePrefixTree('sum')
         >>> spt.insert('hello', 20, ['h','e','l','l','o'])
+        >>> spt.insert('hello', 7, ['h','e','l','l','o'])
         >>> print(spt)
-        [] (20)
-          ['h'] (20)
-            ['h', 'e'] (20)
-              ['h', 'e', 'l'] (20)
-                ['h', 'e', 'l', 'l'] (20)
-                  ['h', 'e', 'l', 'l', 'o'] (20)
-                    hello (20)
-            <BLANKLINE>
+        [] (27)
+          ['h'] (27)
+            ['h', 'e'] (27)
+              ['h', 'e', 'l'] (27)
+                ['h', 'e', 'l', 'l'] (27)
+                  ['h', 'e', 'l', 'l', 'o'] (27)
+                    hello (27)
+        <BLANKLINE>
+        >>> spt.__len__()
+        1
+        >>> spt.subtrees[0].__len__()
+        1
+        >>> spt.subtrees[0].subtrees[0].subtrees[0].subtrees[0].subtrees[0].__len__()
+        1
         """
-        depth = len(self.value)
-        self._len += 1
+        self._insert_helper(value, weight, prefix)
 
-        subtree_index = self._find_subtree_with_prefix(prefix[:(depth + 1)])
+    def _insert_helper(self, value: Any, weight: float, prefix: List) -> bool:
+        """This helps to insert the given value into this Autocompleter.
+
+        A helper was necessary since we needed to recursively edit the length
+        attributes of each tree, but needed to return a boolean that determines
+        whether we are adding a new_leaf. If True, this means the length
+        of each tree it falls under must be increased. If False, we know an
+        attempt was made to insert a previously added value. Consequently, only
+        weights are increased.
+        """
+
+        depth = len(self.value)
+        subtree_index = self._find_subtree_with_value(prefix[:(depth + 1)])
+
+        new_leaf = False
 
         if depth == len(prefix):
             # We have reached the end of the prefix and will add a leaf.
-            subtree = SimplePrefixTree(self._weight_type)
-            subtree.value = value  # TODO this is an alias may cause problems for mutble tpyes
-            subtree.weight = weight
-            subtree._summed_weight = weight
-            subtree._len = 1
-            self._add_subtree(subtree)
+
+            if any(a.value == value for a in self.subtrees):
+                i = self._find_subtree_with_value(value)
+                self.subtrees[i].weight += weight
+                self.subtrees[i]._summed_weight += weight
+                new_leaf = False
+            else:
+                subtree = SimplePrefixTree(self._weight_type)
+                subtree.value = value  # TODO this is an alias may cause problems for mutble tpyes
+                subtree.weight = weight
+                subtree._summed_weight = weight
+                subtree._len = 1
+                self._add_subtree(subtree)
+                new_leaf = True
 
         elif subtree_index is None:  # depth < len(prefix)
             # No prefix exists in the subtree so we add a new subtree.
             subtree = SimplePrefixTree(self._weight_type)
             subtree.value = prefix[:(depth + 1)]
-            subtree.insert(value, weight, prefix)
+            new_leaf = subtree._insert_helper(value, weight, prefix)
             self._add_subtree(subtree)
 
         else:
             # A branch already exists so we go down it.
-            self.subtrees[subtree_index].insert(value, weight, prefix)
+            new_leaf = self.subtrees[subtree_index]._insert_helper(value,
+                                                                   weight,
+                                                                   prefix)
             self._fix_subtree_at_index(subtree_index)
+
+        if new_leaf:
+            self._len += 1
+
         self._calculate_weight()
+
+        return new_leaf
 
     def _add_subtree(self, subtree: SimplePrefixTree) -> None:
         """ Place a subtree into self.subtrees in the correct position base on
@@ -282,7 +318,7 @@ class SimplePrefixTree(Autocompleter):
             self._len = 0
             return length
         else:
-            subtree_index = self._find_subtree_with_prefix(prefix[:(depth + 1)])
+            subtree_index = self._find_subtree_with_value(prefix[:(depth + 1)])
 
             if subtree_index is not None:
                 subtree = self.subtrees[subtree_index]
@@ -335,7 +371,7 @@ class SimplePrefixTree(Autocompleter):
 
             self.weight = self._summed_weight / len(self)
 
-    def _find_subtree_with_prefix(self, prefix: list) -> Optional[int]:
+    def _find_subtree_with_value(self, prefix: Any) -> Optional[int]:
         """Finds a subtree that matches a given  prefix and returns its index
         or None is it cant find one.
         """
@@ -343,6 +379,7 @@ class SimplePrefixTree(Autocompleter):
         for i in range(0, len(self.subtrees)):
             if self.subtrees[i].value == prefix:
                 return i
+        return None
 
     def _fix_subtree_at_index(self, index: int) -> None:
         """If subtree at index is out of order it fixes that by shifting it
