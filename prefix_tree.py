@@ -246,7 +246,7 @@ class SimplePrefixTree(Autocompleter):
         if depth == len(prefix):
             # We have reached the end of the prefix and will add a leaf.
             i = self._find_subtree_with_value(value)
-            if i:
+            if i is not None:
                 self.subtrees[i].weight += weight
                 self.subtrees[i]._summed_weight += weight
                 new_leaf = False
@@ -351,11 +351,6 @@ class SimplePrefixTree(Autocompleter):
         """This recalculates the weight for this tree based on the weight of its
         subtrees
         Note: This method is not recursive.
-        >>> spt = SimplePrefixTree('average')
-        >>> spt.insert('hell', 200, ['h','e','l','l'])
-        >>> spt.insert('heap', 100, ['h','e', 'a', 'p'])
-        >>> spt.insert('hello', 50, ['h','e','l','l','o'])
-        >>> print(spt)
         """
         self._summed_weight = sum([subtree._summed_weight
                                    for subtree in self.subtrees])
@@ -374,7 +369,6 @@ class SimplePrefixTree(Autocompleter):
         """Finds a subtree that matches a given  prefix and returns its index
         or None is it cant find one.
         """
-        # TODO This makes the assumption there are no non-empty non-leaf subtrees with the same value.
         for i in range(0, len(self.subtrees)):
             if self.subtrees[i].value == prefix:
                 return i
@@ -630,61 +624,185 @@ class CompressedPrefixTree(Autocompleter):
                 1) not in this Autocompleter
                 2) was previously inserted with the SAME prefix sequence
         """
-        index = self._find_subtree_with_value(value)
-        if index is not None:
-            self.subtrees[index].weight += weight
-            self.subtrees[index]._summed_weight += weight
+        self._insert_helper(value, weight, prefix)
+
+    def _insert_helper(self, value: Any, weight: float, prefix: List) -> bool:
+        """This helps to insert the given value into this Autocompleter.
+
+        A helper was necessary since we needed to recursively edit the length
+        attributes of each tree, but needed to return a boolean that determines
+        whether we are adding a new_leaf. If True, this means the length
+        of each tree it falls under must be increased. If False, we know an
+        attempt was made to insert a previously added value. Consequently, only
+        weights are increased.
+
+        >>> cpt = CompressedPrefixTree('sum')
+        >>> cpt.insert('hello', 12, ['h', 'e', 'l', 'p'])
+        >>> cpt.insert('hello', 2, ['h', 'e', 'l', 'l', 'o'])
+        >>> cpt.insert('he man', 23, ['h', 'e', ' ', 'm', 'a', 'n'])
+        >>> print(cpt)
+        [] (37)
+          ['h', 'e'] (37)
+            ['h', 'e', ' ', 'm', 'a', 'n'] (23)
+              he man (23)
+            ['h', 'e', 'l'] (14)
+              ['h', 'e', 'l', 'p'] (12)
+                hello (12)
+              ['h', 'e', 'l', 'l', 'o'] (2)
+                hello (2)
+        <BLANKLINE>
+        """
+        made_leaf = False
+        # First we se if a leaf already exists with the needed value
+        st_index = self._find_leaf_with_value(value)
+
+        if st_index is not None:
+            self.subtrees[st_index].weight += weight
+            self.subtrees[st_index]._summed_weight += weight
+            made_leaf = False
         else:
-            prefix_index = self._find_prefix_subtree(prefix)
-            if prefix_index is not None:
-                self.subtrees[prefix_index].insert(value, weight, prefix)
+            # We look for a subtree with a value that is a prefix of prefix
+            st_index = self._find_prefix_subtree(prefix)
+            if st_index is not None:
+                made_leaf = self.subtrees[st_index]._insert_helper(value,
+                                                                   weight,
+                                                                   prefix)
+                # Things could have gotten out of order since we have been
+                # messing with weights
+                self._fix_subtree_at_index(st_index)
             else:
-                for common_prefix_tree in range(len(self.subtrees)):
-                    common_prefix = _share_prefix(common_prefix_tree.value, value)
+                made_leaf = True
+
+                # Try to find a subtree that shares a prefix with prefix
+                common_prefix = None
+                common_prefix_tree = None
+                for i in range(len(self.subtrees)):
+                    common_prefix = _share_prefix(self.subtrees[i].value, value)
                     if common_prefix is not None:
+                        common_prefix_tree = self.subtrees[i]
                         break
 
                 if common_prefix is not None:
+                    # We have found a common prefix so we create a new
+                    # prefix tree and put both trees under it
+                    self.subtrees.remove(common_prefix_tree)
                     parent = CompressedPrefixTree(self._weight_type)
                     parent.value = common_prefix
-                    parent._add_depth_2_subtree(value, prefix, weight)
                     parent.subtrees.append(common_prefix_tree)
-                    self.subtrees.remove(common_prefix_tree)
-                    self.subtrees.append(parent)
+                    parent._add_depth_2_subtree(value, prefix, weight)
+                    parent._len = common_prefix_tree._len + 1
+                    parent._calculate_weight()
+                    self._add_subtree(parent)
                 else:
-                    self._add_depth_2_subtree(value, prefix)
+                    # We have not found a common prefix and we just add a
+                    # new subtree.
+                    self._add_depth_2_subtree(value, prefix, weight)
+
+        if made_leaf:
+            self._len += 1
+
+        self._calculate_weight()
+        return made_leaf
 
     def _add_depth_2_subtree(self, value: Any, prefix: list, weight: float)\
             -> None:
-        """Adds a subtree with only the prefix and the leaf
+        """Adds a subtree with only the prefix and the leaf in correct position
+        by weight.
         """
         leaf = CompressedPrefixTree(self)
         leaf.value = value
+        leaf.weight = weight
+        leaf._summed_weight = weight
         prefix_tree = CompressedPrefixTree(self._weight_type)
         prefix_tree.value = prefix
         prefix_tree.subtrees.append(leaf)
-        self.subtrees.append(prefix_tree)
+        prefix_tree._calculate_weight()
+        self._add_subtree(prefix_tree)
 
-    def _find_subtree_with_value(self, value: Any) -> Optional[int]:
-        """ Finds a subtree that matches a given  prefix and returns its index
+    def _find_leaf_with_value(self, value: Any) -> Optional[int]:
+        """ Returns the index of a leaf with a give value
         or None is it cant find one.
         """
-        # TODO This makes the assumption there are no non-empty non-leaf subtrees with the same value.
         for i in range(0, len(self.subtrees)):
-            if self.subtrees[i].value == value:
+            if (self.subtrees[i].value == value
+                    and not self.subtrees[i].subtrees):
+
                 return i
+
         return None
 
     def _find_prefix_subtree(self, sequence: List) -> Optional[int]:
         """ Finds the index of a subtree whose value is a prefix of sequence.
         If there is no such subtree, return None.
+
+        Precondition: self is a non-empty non-leaf, tree.
         """
-        for i in range(self.subtrees):
+        for i in range(len(self.subtrees)):
             subtree = self.subtrees[i]
             if not subtree.subtrees == []:
-                if _is_prefix(subtree.value, sequence):
+                if _is_prefix(subtree.value, sequence): # TODO we could do subtree.value[n:], sequence[n:] were n is len(self.value)
                     return i
         return None
+
+    def _add_subtree(self, subtree: CompressedPrefixTree) -> None:
+        """ Place a subtree into self.subtrees in the correct position base on
+        weight.
+        """
+        if self.subtrees:
+            # This should only run the first time we fail to find a subtree.
+            i = 0
+            while i in range(0, len(self.subtrees)):
+                if subtree.weight >= self.subtrees[i].weight:
+                    # We are mutating the list and then breaking the
+                    # loop so this is okay.
+                    break
+                i += 1
+
+            self.subtrees.insert(i, subtree)
+        else:  # self.subtrees == []
+            self.subtrees.append(subtree)
+
+    def _calculate_weight(self) -> None:
+        """This recalculates the weight for this tree based on the weight of its
+        subtrees
+        Note: This method is not recursive.
+        """
+        self._summed_weight = sum([subtree._summed_weight
+                                   for subtree in self.subtrees])
+        if self._weight_type == 'sum':
+            self.weight = self._summed_weight
+
+        else:  # self._weight_type == 'average'
+            if len(self) == 0:
+                self.weight = 0
+                self._summed_weight = 0
+                return
+
+            self.weight = self._summed_weight / len(self)
+
+    def _fix_subtree_at_index(self, index: int) -> None:
+        """If subtree at index is out of order it fixes that by shifting it
+        left or right
+
+        Precondition:
+        index in range(0, len(self.subtrees))
+        self.subtrees is all sorted except for subtree at index
+        """
+        subtree = self.subtrees[index]
+
+        while True:
+            if index > 0 and subtree.weight > self.subtrees[index - 1].weight:
+                # Switch with index to left
+                self.subtrees[index - 1], self.subtrees[index] = \
+                    subtree, self.subtrees[index - 1]
+            elif (index < len(self.subtrees) - 1
+                  and subtree.weight < self.subtrees[index + 1].weight):
+                # Switch with index to right
+                self.subtrees[index + 1], self.subtrees[index] = \
+                    subtree, self.subtrees[index + 1]
+            else:
+                # Current position ok
+                return
 
 
 
@@ -703,7 +821,7 @@ def _share_prefix(a, b) -> Optional[Any]:
     else:
         long = b
         short = a
-    for i in range(len(short), 0, -1):
+    for i in range(len(short), 0, -1):# TODO This can be made more efficent
         if _is_prefix(short[:i], long):
             return short[:i]
     return None
