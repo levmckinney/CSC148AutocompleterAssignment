@@ -319,8 +319,12 @@ def _filter_conditions(a: str) -> bool:
     True
     >>> _filter_conditions('>')
     False
+    >>> _filter_conditions('    ')
+    False
+    >>> _filter_conditions('\\n')
+    False
     """
-    if a.isalpha() or a.isnumeric() or a.isspace():
+    if a.isalpha() or a.isnumeric() or a == ' ':
         return True
     else:
         return False
