@@ -357,11 +357,11 @@ def sample_sentence_autocomplete() -> List[Tuple[str, float]]:
 def sample_melody_autocomplete() -> None:
     """A sample run of the melody autocomplete engine."""
     engine = MelodyAutocompleteEngine({
-        'file': 'data/random_melodies_c_scale.csv',
+        'file': 'data/songbook.csv',
         'autocompleter': 'simple',
         'weight_type': 'sum'
     })
-    melodies = engine.autocomplete([2, 2], 20)
+    melodies = engine.autocomplete([-5, 3], 20)
     for melody, _ in melodies:
         melody.play()
 
