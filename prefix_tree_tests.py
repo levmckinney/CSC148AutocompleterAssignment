@@ -1,4 +1,4 @@
-from prefix_tree import SimplePrefixTree
+from prefix_tree import SimplePrefixTree, CompressedPrefixTree
 from timeit import timeit
 import pytest
 import matplotlib.pyplot as plt
@@ -52,6 +52,54 @@ def test_autocomplete() -> None:
     assert spt.autocomplete(['h', 'e', 'a']) == [('heart', 50), ('heat', 47),
                                                  ('heap', 46), ('heal', 45)]
     assert spt.autocomplete(['n', 'o', 'n', 'e']) == []
+
+def test_cpt_insert() -> None:
+    cpt = CompressedPrefixTree('sum')
+    cpt.insert('help', 12, ['h', 'e', 'l', 'p'])
+    cpt.insert('hello', 2, ['h', 'e', 'l', 'l', 'o'])
+    cpt.insert('he man', 23, ['h', 'e', ' ', 'm', 'a', 'n'])
+    cpt.insert('hello', 12, ['h', 'e', 'l', 'l', 'o'])
+    assert cpt.weight == 49
+    assert cpt.subtrees[0].weight == 49
+    assert cpt.subtrees[0].subtrees[0].weight == 26
+    assert cpt.subtrees[0].subtrees[0].subtrees[0].weight == 14
+    assert cpt.subtrees[0].subtrees[0].subtrees[0].subtrees[0].weight == 14
+    assert cpt.subtrees[0].subtrees[0].subtrees[1].weight == 12
+    assert cpt.subtrees[0].subtrees[0].subtrees[1].subtrees[0].weight == 12
+    assert cpt.subtrees[0].subtrees[1].weight == 23
+    assert cpt.subtrees[0].subtrees[1].subtrees[0].weight == 23
+    assert cpt.__len__() == 3
+    assert cpt.subtrees[0].__len__() == 3
+    assert cpt.subtrees[0].subtrees[0].__len__() == 2
+    assert cpt.subtrees[0].subtrees[0].subtrees[0].__len__() == 1
+    assert cpt.subtrees[0].subtrees[0].subtrees[0].subtrees[0].__len__() == 1
+    assert cpt.subtrees[0].subtrees[0].subtrees[1].__len__() == 1
+    assert cpt.subtrees[0].subtrees[0].subtrees[1].subtrees[0].__len__() == 1
+    assert cpt.subtrees[0].subtrees[1].__len__() == 1
+    assert cpt.subtrees[0].subtrees[1].subtrees[0].__len__() == 1
+
+def test_cpt_remove() -> None:
+    cpt = CompressedPrefixTree("sum")
+    cpt.insert("hello", 100, ['h', 'e', 'l', 'l', 'o'])
+    cpt.remove(['h'])
+    assert cpt.weight == 0
+    assert cpt.__len__() == 0
+    cpt = CompressedPrefixTree('sum')
+    cpt.insert('help', 12, ['h', 'e', 'l', 'p'])
+    cpt.insert('hello', 2, ['h', 'e', 'l', 'l', 'o'])
+    cpt.insert('he man', 23, ['h', 'e', ' ', 'm', 'a', 'n'])
+    cpt.insert('hello', 12, ['h', 'e', 'l', 'l', 'o'])
+    cpt.remove(['h'])
+    assert cpt.weight == 0
+    assert cpt.__len__() == 0
+    cpt = CompressedPrefixTree('sum')
+    cpt.insert('help', 12, ['h', 'e', 'l', 'p'])
+    cpt.insert('hello', 2, ['h', 'e', 'l', 'l', 'o'])
+    cpt.insert('he man', 23, ['h', 'e', ' ', 'm', 'a', 'n'])
+    cpt.insert('hello', 12, ['h', 'e', 'l', 'l', 'o'])
+    cpt.remove(['h', 'e'])
+    assert cpt.weight == 0
+    assert cpt.__len__() == 0
 
 def random_string(N:int):
     ''.join(r.choices(s.ascii_uppercase + s.digits, k=N))
