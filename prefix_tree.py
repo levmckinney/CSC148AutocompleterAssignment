@@ -126,7 +126,7 @@ class SimplePrefixTree(Autocompleter):
     _len: int
     # _summed_weight: this is the sum of the weights inserted into self
     # regardless of the value of _weight_type.
-    _summed_weight: int
+    _summed_weight: float
     # === Private Representation invariants ===
     # All trees have the same _weight_type as their subtrees.
     # _len >= 0
@@ -546,7 +546,7 @@ class CompressedPrefixTree(Autocompleter):
     _len: int
     # _summed_weight: this is the sum of the weights inserted into self
     # regardless of the value of _weight_type.
-    _summed_weight: int
+    _summed_weight: float
     # === Private Representation invariants ===
     # All trees have the same _weight_type as their subtrees.
     # _len >= 0
@@ -637,19 +637,20 @@ class CompressedPrefixTree(Autocompleter):
         weights are increased.
 
         >>> cpt = CompressedPrefixTree('sum')
-        >>> cpt.insert('hello', 12, ['h', 'e', 'l', 'p'])
+        >>> cpt.insert('help', 12, ['h', 'e', 'l', 'p'])
         >>> cpt.insert('hello', 2, ['h', 'e', 'l', 'l', 'o'])
         >>> cpt.insert('he man', 23, ['h', 'e', ' ', 'm', 'a', 'n'])
+        >>> cpt.insert('hello', 12, ['h', 'e', 'l', 'l', 'o'])
         >>> print(cpt)
-        [] (37)
-          ['h', 'e'] (37)
+        [] (49)
+          ['h', 'e'] (49)
+            ['h', 'e', 'l'] (26)
+              ['h', 'e', 'l', 'l', 'o'] (14)
+                hello (14)
+              ['h', 'e', 'l', 'p'] (12)
+                help (12)
             ['h', 'e', ' ', 'm', 'a', 'n'] (23)
               he man (23)
-            ['h', 'e', 'l'] (14)
-              ['h', 'e', 'l', 'p'] (12)
-                hello (12)
-              ['h', 'e', 'l', 'l', 'o'] (2)
-                hello (2)
         <BLANKLINE>
         """
         made_leaf = False
@@ -710,12 +711,16 @@ class CompressedPrefixTree(Autocompleter):
         by weight.
         """
         leaf = CompressedPrefixTree(self)
+        leaf._len = 1
         leaf.value = value
-        leaf.weight = weight
         leaf._summed_weight = weight
+        # no need to use _calculate_weight() if len == 1
+        leaf.weight = weight
         prefix_tree = CompressedPrefixTree(self._weight_type)
         prefix_tree.value = prefix
         prefix_tree.subtrees.append(leaf)
+        prefix_tree._len = 1
+        prefix_tree._summed_weight += weight
         prefix_tree._calculate_weight()
         self._add_subtree(prefix_tree)
 
@@ -803,7 +808,6 @@ class CompressedPrefixTree(Autocompleter):
             else:
                 # Current position ok
                 return
-
 
 
 def _share_prefix(a, b) -> Optional[Any]:
