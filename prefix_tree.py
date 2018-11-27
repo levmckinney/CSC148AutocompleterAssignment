@@ -637,22 +637,6 @@ class CompressedPrefixTree(Autocompleter):
         weights are increased.
 
         >>> cpt = CompressedPrefixTree('sum')
-        >>> cpt.insert('help', 12, ['h', 'e', 'l', 'p'])
-        >>> cpt.insert('hello', 2, ['h', 'e', 'l', 'l', 'o'])
-        >>> cpt.insert('he man', 23, ['h', 'e', ' ', 'm', 'a', 'n'])
-        >>> cpt.insert('hello', 12, ['h', 'e', 'l', 'l', 'o'])
-        >>> print(cpt)
-        [] (49)
-          ['h', 'e'] (49)
-            ['h', 'e', 'l'] (26)
-              ['h', 'e', 'l', 'l', 'o'] (14)
-                hello (14)
-              ['h', 'e', 'l', 'p'] (12)
-                help (12)
-            ['h', 'e', ' ', 'm', 'a', 'n'] (23)
-              he man (23)
-        <BLANKLINE>
-        >>> cpt = CompressedPrefixTree('sum')
         >>> cpt.insert('swell', 75, ['s', 'w', 'e', 'l', 'l'])
         >>> print(cpt)
         [] (75)
@@ -662,7 +646,7 @@ class CompressedPrefixTree(Autocompleter):
         >>> cpt.insert('sweet', 50, ['s', 'w', 'e', 'e', 't'])
         >>> print(cpt)
         [] (125)
-          swe (125)
+          ['s', 'w', 'e'] (125)
             ['s', 'w', 'e', 'l', 'l'] (75)
               swell (75)
             ['s', 'w', 'e', 'e', 't'] (50)
@@ -671,8 +655,8 @@ class CompressedPrefixTree(Autocompleter):
         >>> cpt.insert('swat', 51, ['s', 'w', 'a', 't'])
         >>> print(cpt)
         [] (176)
-          sw (176)
-            swe (125)
+          ['s', 'w'] (176)
+            ['s', 'w', 'e'] (125)
               ['s', 'w', 'e', 'l', 'l'] (75)
                 swell (75)
               ['s', 'w', 'e', 'e', 't'] (50)
@@ -683,21 +667,18 @@ class CompressedPrefixTree(Autocompleter):
         >>> cpt.insert('swap', 76, ['s', 'w', 'a', 'p'])
         >>> print(cpt)
         [] (252)
-          sw (252)
-            swa (127)
+          ['s', 'w'] (252)
+            ['s', 'w', 'a'] (127)
               ['s', 'w', 'a', 'p'] (76)
                 swap (76)
               ['s', 'w', 'a', 't'] (51)
                 swat (51)
-            swe (125)
+            ['s', 'w', 'e'] (125)
               ['s', 'w', 'e', 'l', 'l'] (75)
                 swell (75)
               ['s', 'w', 'e', 'e', 't'] (50)
                 sweet (50)
         <BLANKLINE>
-        """
-        # TODO: When the above passes, add the following lines to end of doctest
-        """
         >>> cpt.__len__()
         4
         >>> cpt.subtrees[0].__len__()
@@ -744,30 +725,23 @@ class CompressedPrefixTree(Autocompleter):
             else:
                 made_leaf = True
 
-                # Try to find a subtree that shares a prefix with prefix
-                common_prefix = None
-                common_prefix_tree = None
-                for i in range(len(self.subtrees)):
-                    common_prefix = _share_prefix(self.subtrees[i].value, value)
-                    if common_prefix is not None:
-                        common_prefix_tree = self.subtrees[i]
-                        break
-                # TODO: fix the improper assumption made here
-                """ We can see in the doctest that this is not working when the
-                correct common prefix to construct is not to be made at depth
-                1. THIS IS THE DISTINCT DIFFERENCE BETWEEN THE 3RD LAST AND
-                FINAL 'INSERT' CALL.
-                """
-                if common_prefix is not None:
-                    # We have found a common prefix so we create a new
-                    # prefix tree and put both trees under it
+                # Here we look for a subtree that shares a prefix with prefix
+                # longer than self.value (a novel prefix).
 
-                    self.subtrees.remove(common_prefix_tree)
+                novel_tuple = self._find_novel_shared_prefix(prefix)
+
+                if novel_tuple is not None:
+                    novel_prefix_tree = self.subtrees[novel_tuple[0]]
+                    novel_prefix = novel_tuple[1]
+
+                    # We have found a novel prefix so we create a new
+                    # prefix tree and put both trees under it
+                    self.subtrees.remove(novel_prefix_tree)
                     parent = CompressedPrefixTree(self._weight_type)
-                    parent.value = common_prefix
-                    parent.subtrees.append(common_prefix_tree)
+                    parent.value = novel_prefix
+                    parent.subtrees.append(novel_prefix_tree)
                     parent._add_depth_2_subtree(value, prefix, weight)
-                    parent._len = common_prefix_tree._len + 1
+                    parent._len = novel_prefix_tree._len + 1
                     parent._calculate_weight()
                     self._add_subtree(parent)
                 else:
@@ -780,6 +754,24 @@ class CompressedPrefixTree(Autocompleter):
 
         self._calculate_weight()
         return made_leaf
+
+    def _find_novel_shared_prefix(self, sequence: List) \
+            -> Optional[Tuple[int, List]]:
+        """This function looks for a subtree that shares a prefix longer than
+        self.value (a novel prefix) with sequence then it returns its index and
+        the longest prefix that they share and None if no subtree is found.
+        """
+        novel_prefix = None
+
+        lenv = len(self.value)
+        for i in range(len(self.subtrees)):
+            if self.subtrees[i].subtrees != []:  # Not a leaf
+                novel_prefix = _share_prefix(self.subtrees[i].value[lenv:],
+                                             sequence[lenv:])
+                if novel_prefix is not None:
+                    return i, self.value + novel_prefix
+
+        return None
 
     def _add_depth_2_subtree(self, value: Any, prefix: list, weight: float)\
             -> None:
