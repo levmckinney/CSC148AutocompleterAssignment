@@ -654,8 +654,32 @@ class CompressedPrefixTree(Autocompleter):
         <BLANKLINE>
         >>> cpt = CompressedPrefixTree('sum')
         >>> cpt.insert('swell', 75, ['s', 'w', 'e', 'l', 'l'])
+        >>> print(cpt)
+        [] (75)
+          ['s', 'w', 'e', 'l', 'l'] (75)
+            swell (75)
+        <BLANKLINE>
         >>> cpt.insert('sweet', 50, ['s', 'w', 'e', 'e', 't'])
+        >>> print(cpt)
+        [] (125)
+          swe (125)
+            ['s', 'w', 'e', 'l', 'l'] (75)
+              swell (75)
+            ['s', 'w', 'e', 'e', 't'] (50)
+              sweet (50)
+        <BLANKLINE>
         >>> cpt.insert('swat', 51, ['s', 'w', 'a', 't'])
+        >>> print(cpt)
+        [] (176)
+          sw (176)
+            swe (125)
+              ['s', 'w', 'e', 'l', 'l'] (75)
+                swell (75)
+              ['s', 'w', 'e', 'e', 't'] (50)
+                sweet (50)
+            ['s', 'w', 'a', 't'] (51)
+              swat (51)
+        <BLANKLINE>
         >>> cpt.insert('swap', 76, ['s', 'w', 'a', 'p'])
         >>> print(cpt)
         [] (252)
@@ -671,6 +695,9 @@ class CompressedPrefixTree(Autocompleter):
               ['s', 'w', 'e', 'e', 't'] (50)
                 sweet (50)
         <BLANKLINE>
+        """
+        # TODO: When the above passes, add the following lines to end of doctest
+        """
         >>> cpt.__len__()
         4
         >>> cpt.subtrees[0].__len__()
@@ -725,10 +752,16 @@ class CompressedPrefixTree(Autocompleter):
                     if common_prefix is not None:
                         common_prefix_tree = self.subtrees[i]
                         break
-
+                # TODO: fix the improper assumption made here
+                """ We can see in the doctest that this is not working when the
+                correct common prefix to construct is not to be made at depth
+                1. THIS IS THE DISTINCT DIFFERENCE BETWEEN THE 3RD LAST AND
+                FINAL 'INSERT' CALL.
+                """
                 if common_prefix is not None:
                     # We have found a common prefix so we create a new
                     # prefix tree and put both trees under it
+
                     self.subtrees.remove(common_prefix_tree)
                     parent = CompressedPrefixTree(self._weight_type)
                     parent.value = common_prefix
