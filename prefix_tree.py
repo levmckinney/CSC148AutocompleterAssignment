@@ -768,7 +768,7 @@ class CompressedPrefixTree(Autocompleter):
                 novel_prefix = _share_prefix(self.subtrees[i].value,
                                              sequence, len(self.value))
                 if novel_prefix != []:
-                    return i, self.value + novel_prefix
+                    return i, novel_prefix
 
         return None
 
