@@ -652,6 +652,49 @@ class CompressedPrefixTree(Autocompleter):
             ['h', 'e', ' ', 'm', 'a', 'n'] (23)
               he man (23)
         <BLANKLINE>
+        >>> cpt = CompressedPrefixTree('sum')
+        >>> cpt.insert('swell', 75, ['s', 'w', 'e', 'l', 'l'])
+        >>> cpt.insert('sweet', 50, ['s', 'w', 'e', 'e', 't'])
+        >>> cpt.insert('swat', 51, ['s', 'w', 'a', 't'])
+        >>> cpt.insert('swap', 76, ['s', 'w', 'a', 'p'])
+        >>> print(cpt)
+        [] (252)
+          sw (252)
+            swa (127)
+              ['s', 'w', 'a', 'p'] (76)
+                swap (76)
+              ['s', 'w', 'a', 't'] (51)
+                swat (51)
+            swe (125)
+              ['s', 'w', 'e', 'l', 'l'] (75)
+                swell (75)
+              ['s', 'w', 'e', 'e', 't'] (50)
+                sweet (50)
+        <BLANKLINE>
+        >>> cpt.__len__()
+        4
+        >>> cpt.subtrees[0].__len__()
+        4
+        >>> cpt.subtrees[0].subtrees[0].__len__()
+        2
+        >>> cpt.subtrees[0].subtrees[0].subtrees[0].__len__()
+        1
+        >>> cpt.subtrees[0].subtrees[0].subtrees[0].subtrees[0].__len__()
+        1
+        >>> cpt.subtrees[0].subtrees[0].subtrees[1].__len__()
+        1
+        >>> cpt.subtrees[0].subtrees[0].subtrees[1].subtrees[0].__len__()
+        1
+        >>> cpt.subtrees[0].subtrees[1].__len__()
+        2
+        >>> cpt.subtrees[0].subtrees[1].subtrees[0].__len__()
+        1
+        >>> cpt.subtrees[0].subtrees[1].subtrees[0].subtrees[0].__len__()
+        1
+        >>> cpt.subtrees[0].subtrees[1].subtrees[1].__len__()
+        1
+        >>> cpt.subtrees[0].subtrees[1].subtrees[1].subtrees[0].__len__()
+        1
         """
         made_leaf = False
         # First we se if a leaf already exists with the needed value
@@ -808,6 +851,101 @@ class CompressedPrefixTree(Autocompleter):
             else:
                 # Current position ok
                 return
+
+    def remove(self, prefix: List) -> None:
+        """Remove all values that match the given prefix.
+        >>> cpt = CompressedPrefixTree('sum')
+        >>> cpt.insert('help', 12, ['h', 'e', 'l', 'p'])
+        >>> cpt.insert('hello', 2, ['h', 'e', 'l', 'l', 'o'])
+        >>> cpt.insert('he man', 23, ['h', 'e', ' ', 'm', 'a', 'n'])
+        >>> cpt.insert('hello', 12, ['h', 'e', 'l', 'l', 'o'])
+        >>> print(cpt)
+        [] (49)
+          ['h', 'e'] (49)
+            ['h', 'e', 'l'] (26)
+              ['h', 'e', 'l', 'l', 'o'] (14)
+                hello (14)
+              ['h', 'e', 'l', 'p'] (12)
+                help (12)
+            ['h', 'e', ' ', 'm', 'a', 'n'] (23)
+              he man (23)
+        <BLANKLINE>
+        >>> cpt.remove(['h', 'e', 'l'])
+        >>> print(cpt)
+        [] (23)
+          ['h', 'e'] (23)
+            ['h', 'e', ' ', 'm', 'a', 'n'] (23)
+              he man (23)
+        <BLANKLINE>
+        >>> cpt.__len__()
+        1
+        >>> cpt.subtrees[0].__len__()
+        1
+        >>> cpt.subtrees[0].subtrees[0].__len__()
+        1
+        >>> cpt.subtrees[0].subtrees[0].subtrees[0].__len__()
+        1
+        >>> cpt.weight
+        23
+        >>> cpt.subtrees[0].weight
+        23
+        >>> cpt.subtrees[0].subtrees[0].weight
+        23
+        >>> cpt.subtrees[0].subtrees[0].subtrees[0].weight
+        23
+        """
+        """
+        I WILL BE RUNNING THESE TESTS ONCE INSERT WORKS ON THIS CASE
+        >>> cpt = CompressedPrefixTree('sum')
+        >>> cpt.insert('swell', 75, ['s', 'w', 'e', 'l', 'l'])
+        >>> cpt.insert('sweet', 50, ['s', 'w', 'e', 'e', 't'])
+        >>> cpt.insert('swat', 51, ['s', 'w', 'a', 't'])
+        >>> cpt.insert('swap', 76, ['s', 'w', 'a', 'p'])
+        >>> print(cpt)
+        >>> cpt.remove(['s', 'w', 'a'])
+        >>> print(cpt)
+        """
+        self._remove_helper(prefix, True)
+
+    def _remove_helper(self, prefix: List, is_root: bool) -> bool:
+        if self.is_empty():
+            return True
+        elif self.is_leaf():
+            if _is_prefix(prefix, self.value):
+                return True
+            return False
+        elif self.weight == 0 and len(self.subtrees) == 0:
+            return True
+        else: # has subtrees
+            amount_to_check = len(self.value)
+            if amount_to_check <= len(prefix):
+                if _is_prefix(prefix[:amount_to_check], self.value):
+                    returned_values = []
+                    pos = 0
+                    while pos < len(self.subtrees):
+                        subtree = self.subtrees[pos]
+                        subtree_len = subtree._len
+                        to_remove = subtree._remove_helper(prefix, False)
+                        if to_remove:
+                            self._remove_subtree_and_update_self(subtree, subtree_len)
+                        else:
+                            pos += 1
+                    if len(self.subtrees) == 0:
+                        return True
+            else:
+                if _is_prefix(prefix, self.value):
+                    return True
+            if is_root:
+                self._len = sum(subtree._len for subtree in self.subtrees)
+            self._calculate_weight()
+            return False
+
+    def _remove_subtree_and_update_self(self, subtree: CompressedPrefixTree, \
+                                        subtree_len: int) -> None:
+        self._summed_weight -= subtree._summed_weight
+        self._len -= subtree_len
+        self.subtrees.remove(subtree)
+        self._calculate_weight()
 
 
 def _share_prefix(a, b) -> Optional[Any]:
