@@ -664,13 +664,31 @@ class CompressedPrefixTree(Autocompleter):
             ['s', 'w', 'a', 't'] (51)
               swat (51)
         <BLANKLINE>
-        >>> cpt.insert('swap', 76, ['s', 'w', 'a', 'p'])
+        >>> cpt.insert('swappper', 76, ['s', 'w', 'a', 'p', 'p', 'e', 'r'])
         >>> print(cpt)
         [] (252)
           ['s', 'w'] (252)
             ['s', 'w', 'a'] (127)
-              ['s', 'w', 'a', 'p'] (76)
-                swap (76)
+              ['s', 'w', 'a', 'p', 'p', 'e', 'r'] (76)
+                swappper (76)
+              ['s', 'w', 'a', 't'] (51)
+                swat (51)
+            ['s', 'w', 'e'] (125)
+              ['s', 'w', 'e', 'l', 'l'] (75)
+                swell (75)
+              ['s', 'w', 'e', 'e', 't'] (50)
+                sweet (50)
+        <BLANKLINE>
+        >>> cpt.insert('swappo', 10, ['s', 'w', 'a', 'p', 'p', 'o'])
+        >>> print(cpt)
+        [] (262)
+          ['s', 'w'] (262)
+            ['s', 'w', 'a'] (137)
+              ['s', 'w', 'a', 'p', 'p'] (86)
+                ['s', 'w', 'a', 'p', 'p', 'e', 'r'] (76)
+                  swappper (76)
+                ['s', 'w', 'a', 'p', 'p', 'o'] (10)
+                  swappo (10)
               ['s', 'w', 'a', 't'] (51)
                 swat (51)
             ['s', 'w', 'e'] (125)
@@ -680,14 +698,18 @@ class CompressedPrefixTree(Autocompleter):
                 sweet (50)
         <BLANKLINE>
         >>> cpt.__len__()
-        4
+        5
         >>> cpt.subtrees[0].__len__()
-        4
+        5
         >>> cpt.subtrees[0].subtrees[0].__len__()
-        2
+        3
         >>> cpt.subtrees[0].subtrees[0].subtrees[0].__len__()
-        1
+        2
         >>> cpt.subtrees[0].subtrees[0].subtrees[0].subtrees[0].__len__()
+        1
+        >>> cpt.subtrees[0].subtrees[0].subtrees[0].subtrees[0].subtrees[0].__len__()
+        1
+        >>> cpt.subtrees[0].subtrees[0].subtrees[0].subtrees[1].subtrees[0].__len__()
         1
         >>> cpt.subtrees[0].subtrees[0].subtrees[1].__len__()
         1
@@ -875,6 +897,41 @@ class CompressedPrefixTree(Autocompleter):
             else:
                 # Current position ok
                 return
+
+    def autocomplete(self, prefix: List,
+                     limit: Optional[int] = None) -> List[Tuple[Any, float]]:
+        """Return up to <limit> matches for the given prefix.
+
+        The return value is a list of tuples (value, weight), and must be
+        ordered in non-increasing weight. (You can decide how to break ties.)
+
+        If limit is None, return *every* match for the given prefix.
+
+        Precondition: limit is None or limit > 0.
+        >>> cpt = CompressedPrefixTree('sum')
+        >>> cpt.insert('swell', 75, ['s', 'w', 'e', 'l', 'l'])
+        >>> cpt.insert('sweet', 50, ['s', 'w', 'e', 'e', 't'])
+        >>> cpt.insert('swat', 51, ['s', 'w', 'a', 't'])
+        >>> cpt.insert('swap', 76, ['s', 'w', 'a', 'p'])
+        >>> print(cpt)
+        [] (252)
+          ['s', 'w'] (252)
+            ['s', 'w', 'a'] (127)
+              ['s', 'w', 'a', 'p'] (76)
+                swap (76)
+              ['s', 'w', 'a', 't'] (51)
+                swat (51)
+            ['s', 'w', 'e'] (125)
+              ['s', 'w', 'e', 'l', 'l'] (75)
+                swell (75)
+              ['s', 'w', 'e', 'e', 't'] (50)
+                sweet (50)
+        <BLANKLINE>
+        >>> cpt.autocomplete(['s', 'w', 'a'])
+        [('swap', 76), ('swat', 51)]
+        """
+        raise NotImplementedError
+        # TODO: implement
 
     def remove(self, prefix: List) -> None:
         """Remove all values that match the given prefix.
