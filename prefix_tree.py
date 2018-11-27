@@ -763,12 +763,11 @@ class CompressedPrefixTree(Autocompleter):
         """
         novel_prefix = None
 
-        lenv = len(self.value)
         for i in range(len(self.subtrees)):
             if self.subtrees[i].subtrees != []:  # Not a leaf
-                novel_prefix = _share_prefix(self.subtrees[i].value[lenv:],
-                                             sequence[lenv:])
-                if novel_prefix is not None:
+                novel_prefix = _share_prefix(self.subtrees[i].value,
+                                             sequence, len(self.value))
+                if novel_prefix != []:
                     return i, self.value + novel_prefix
 
         return None
@@ -973,13 +972,17 @@ class CompressedPrefixTree(Autocompleter):
         self._calculate_weight()
 
 
-def _share_prefix(a, b) -> Optional[Any]:
-    """ If there is a common prefix amongst <a> and <b>, return the prefix.
-    Otherwise, return None.
-    >>> _share_prefix([0, 1, 2, 3], [1])
-    >>> _share_prefix([0, 1, 2, 3], [0, 1, 2, 5, 7, 9])
+def _share_prefix(a: list, b: list, min: int) -> List:
+    """ If there is a common prefix amongst <a> and <b>, longer
+     than min return the prefix.
+
+    >>> _share_prefix([0, 1, 2, 3], [1], 1)
+    []
+    >>> _share_prefix([0, 1, 2, 3], [0, 1, 2, 5, 7, 9], 3)
+    []
+    >>> _share_prefix([0, 1, 2, 3], [0, 1, 2, 5, 7, 9], 2)
     [0, 1, 2]
-    >>> _share_prefix([0, 1, 2, 5, 7, 9], [0, 1, 2, 3])
+    >>> _share_prefix([0, 1, 2, 5, 7, 9], [0, 1, 2, 3], 1)
     [0, 1, 2]
     """
     if len(a) >= len(b):
@@ -988,10 +991,17 @@ def _share_prefix(a, b) -> Optional[Any]:
     else:
         long = b
         short = a
-    for i in range(len(short), 0, -1):# TODO This can be made more efficent
-        if _is_prefix(short[:i], long):
-            return short[:i]
-    return None
+    for i in range(len(short)):
+        if short[i] != long[i]:
+            if i > min:
+                return short[:i]
+            else:
+                return []
+
+    if len(short) > min:
+        return short[:]
+    else:
+        return []
 
 
 def _is_prefix(prefix, items) -> bool:
