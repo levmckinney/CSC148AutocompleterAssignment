@@ -84,7 +84,6 @@ def test_cpt_remove() -> None:
     cpt.remove(['h'])
     assert cpt.weight == 0
     assert cpt.__len__() == 0
-    cpt = CompressedPrefixTree('sum')
     cpt.insert('help', 12, ['h', 'e', 'l', 'p'])
     cpt.insert('hello', 2, ['h', 'e', 'l', 'l', 'o'])
     cpt.insert('he man', 23, ['h', 'e', ' ', 'm', 'a', 'n'])
@@ -92,7 +91,6 @@ def test_cpt_remove() -> None:
     cpt.remove(['h'])
     assert cpt.weight == 0
     assert cpt.__len__() == 0
-    cpt = CompressedPrefixTree('sum')
     cpt.insert('help', 12, ['h', 'e', 'l', 'p'])
     cpt.insert('hello', 2, ['h', 'e', 'l', 'l', 'o'])
     cpt.insert('he man', 23, ['h', 'e', ' ', 'm', 'a', 'n'])
@@ -100,6 +98,27 @@ def test_cpt_remove() -> None:
     cpt.remove(['h', 'e'])
     assert cpt.weight == 0
     assert cpt.__len__() == 0
+    cpt.insert('help', 12, ['h', 'e', 'l', 'p'])
+    cpt.insert('hello', 2, ['h', 'e', 'l', 'l', 'o'])
+    cpt.insert('he man', 23, ['h', 'e', ' ', 'm', 'a', 'n'])
+    cpt.insert('hello', 12, ['h', 'e', 'l', 'l', 'o'])
+    cpt.remove(['h', 'e', 'l'])
+    assert cpt.__len__() == 1
+    assert cpt.subtrees[0].__len__() == 1
+    assert cpt.subtrees[0].subtrees[0].__len__() == 1
+    assert cpt.subtrees[0].subtrees[0].subtrees[0].__len__() == 1
+    assert cpt.weight == 23
+    assert cpt.subtrees[0].weight == 23
+    assert cpt.subtrees[0].subtrees[0].weight == 23
+    assert cpt.subtrees[0].subtrees[0].subtrees[0].weight == 23
+    cpt.remove(['h'])
+    assert cpt.__len__() == 0
+    assert cpt.weight == 0
+    cpt.insert('swell', 75, ['s', 'w', 'e', 'l', 'l'])
+    cpt.insert('sweet', 50, ['s', 'w', 'e', 'e', 't'])
+    cpt.insert('swat', 51, ['s', 'w', 'a', 't'])
+    cpt.insert('swap', 76, ['s', 'w', 'a', 'p'])
+    cpt.remove(['s', 'w'])
 
 def random_string(N:int):
     ''.join(r.choices(s.ascii_uppercase + s.digits, k=N))
