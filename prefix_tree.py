@@ -917,17 +917,35 @@ class CompressedPrefixTree(Autocompleter):
         23
         >>> cpt.subtrees[0].subtrees[0].subtrees[0].weight
         23
-        """
-        """
-        I WILL BE RUNNING THESE TESTS ONCE INSERT WORKS ON THIS CASE
         >>> cpt = CompressedPrefixTree('sum')
         >>> cpt.insert('swell', 75, ['s', 'w', 'e', 'l', 'l'])
         >>> cpt.insert('sweet', 50, ['s', 'w', 'e', 'e', 't'])
         >>> cpt.insert('swat', 51, ['s', 'w', 'a', 't'])
         >>> cpt.insert('swap', 76, ['s', 'w', 'a', 'p'])
         >>> print(cpt)
+        [] (252)
+          ['s', 'w'] (252)
+            ['s', 'w', 'a'] (127)
+              ['s', 'w', 'a', 'p'] (76)
+                swap (76)
+              ['s', 'w', 'a', 't'] (51)
+                swat (51)
+            ['s', 'w', 'e'] (125)
+              ['s', 'w', 'e', 'l', 'l'] (75)
+                swell (75)
+              ['s', 'w', 'e', 'e', 't'] (50)
+                sweet (50)
+        <BLANKLINE>
         >>> cpt.remove(['s', 'w', 'a'])
         >>> print(cpt)
+        [] (125)
+          ['s', 'w'] (125)
+            ['s', 'w', 'e'] (125)
+              ['s', 'w', 'e', 'l', 'l'] (75)
+                swell (75)
+              ['s', 'w', 'e', 'e', 't'] (50)
+                sweet (50)
+        <BLANKLINE>
         """
         self._remove_helper(prefix, True)
 
