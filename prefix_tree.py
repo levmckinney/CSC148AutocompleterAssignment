@@ -249,6 +249,7 @@ class SimplePrefixTree(Autocompleter):
             if i is not None:
                 self.subtrees[i].weight += weight
                 self.subtrees[i]._summed_weight += weight
+                self._fix_subtree_at_index(i)
                 new_leaf = False
             else:
                 subtree = SimplePrefixTree(self._weight_type)
@@ -346,6 +347,8 @@ class SimplePrefixTree(Autocompleter):
                         pass
 
                     return num_removed
+            else:
+                return 0
 
     def _calculate_weight(self) -> None:
         """This recalculates the weight for this tree based on the weight of its
@@ -365,12 +368,12 @@ class SimplePrefixTree(Autocompleter):
 
             self.weight = self._summed_weight / len(self)
 
-    def _find_subtree_with_value(self, prefix: Any) -> Optional[int]:
+    def _find_subtree_with_value(self, value: Any) -> Optional[int]:
         """Finds a subtree that matches a given  prefix and returns its index
         or None is it cant find one.
         """
         for i in range(0, len(self.subtrees)):
-            if self.subtrees[i].value == prefix:
+            if self.subtrees[i].value == value:
                 return i
         return None
 
@@ -389,11 +392,13 @@ class SimplePrefixTree(Autocompleter):
                 # Switch with index to left
                 self.subtrees[index - 1], self.subtrees[index] = \
                     subtree, self.subtrees[index - 1]
+                index -= 1
             elif (index < len(self.subtrees) - 1
                   and subtree.weight < self.subtrees[index + 1].weight):
                 # Switch with index to right
                 self.subtrees[index + 1], self.subtrees[index] = \
                     subtree, self.subtrees[index + 1]
+                index += 1 #TODO MAKE THIS CHANFE IN Compressed subtree
             else:
                 # Current position ok
                 return
@@ -726,6 +731,7 @@ class CompressedPrefixTree(Autocompleter):
         >>> cpt.subtrees[0].subtrees[1].subtrees[1].subtrees[0].__len__()
         1
         """
+
         made_leaf = False
         # First we se if a leaf already exists with the needed value
         st_index = self._find_leaf_with_value(value)
@@ -733,6 +739,7 @@ class CompressedPrefixTree(Autocompleter):
         if st_index is not None:
             self.subtrees[st_index].weight += weight
             self.subtrees[st_index]._summed_weight += weight
+            self._fix_subtree_at_index(st_index)
             made_leaf = False
         else:
             # We look for a subtree with a value that is a prefix of prefix
@@ -889,11 +896,13 @@ class CompressedPrefixTree(Autocompleter):
                 # Switch with index to left
                 self.subtrees[index - 1], self.subtrees[index] = \
                     subtree, self.subtrees[index - 1]
+                index -= 1
             elif (index < len(self.subtrees) - 1
                   and subtree.weight < self.subtrees[index + 1].weight):
                 # Switch with index to right
                 self.subtrees[index + 1], self.subtrees[index] = \
                     subtree, self.subtrees[index + 1]
+                index += 1
             else:
                 # Current position ok
                 return

@@ -2,6 +2,8 @@ from prefix_tree import SimplePrefixTree, CompressedPrefixTree
 from timeit import timeit
 import pytest
 import matplotlib.pyplot as plt
+from hypothesis import given
+from hypothesis.strategies import integers, characters, lists, tuples
 import random as r
 import string as s
 
@@ -27,8 +29,6 @@ def test_get_leafs_greedy():
                                          ('heap', 46)]
     assert spt.subtrees[0].subtrees[0].subtrees[1]._get_leaves_greedy(None) == \
            [('hello', 80), ('hell', 20), ('help', 10)]
-
-    print (random_string(123))
 
 
 def test_autocomplete() -> None:
@@ -120,13 +120,113 @@ def test_cpt_remove() -> None:
     cpt.insert('swap', 76, ['s', 'w', 'a', 'p'])
     cpt.remove(['s', 'w'])
 
-def random_string(N:int):
-    ''.join(r.choices(s.ascii_uppercase + s.digits, k=N))
 
+@given(inserts=lists(
+                    tuples(
+                           lists(characters(whitelist_categories=('L', 'Nd'))),
+                           integers(min_value=1))),
+       removes=lists(
+                     lists(characters(whitelist_categories=('L', 'Nd'))),
+                     max_size=4))
+def test_propertys_cpt(inserts, removes):
+    cpt = CompressedPrefixTree('average')
+    for insert in inserts:
+        cpt.insert(str(insert[0]), insert[1], insert[0])
+
+    check_rep_vars_cpt(cpt)
+
+    for remove in removes:
+        cpt.remove(remove)
+
+    check_rep_vars_cpt(cpt)
+
+
+def check_rep_vars_cpt(cpt: CompressedPrefixTree) -> None:
+
+    if cpt.is_empty():
+        assert cpt.subtrees == []
+    else:
+        if cpt.subtrees != []:
+            assert isinstance(cpt.value, list)
+
+        # check for redundent trees
+        if len(cpt.subtrees) == 1:
+             assert cpt.subtrees[0].subtrees == []
+
+        # check subtrees are sorted
+        assert cpt.subtrees == sorted(cpt.subtrees, key=lambda spt: spt.weight,
+                                      reverse=True)
+
+        sumed_weight_len = calc_sumed_weight_len_spt(cpt)
+
+        # check weight is good
+        assert sumed_weight_len[0] / sumed_weight_len[1] == cpt.weight
+
+        # check len is good
+        assert sumed_weight_len[1] == len(cpt)
+
+        # check still subtrees are good
+        for subtree in cpt.subtrees:
+            check_rep_vars_cpt(subtree)
+
+
+@given(inserts=lists(
+                    tuples(
+                           lists(characters(whitelist_categories=('L', 'Nd'))),
+                           integers(min_value=1))),
+       removes=lists(
+                     lists(characters(whitelist_categories=('L', 'Nd'))),
+                     max_size=4))
+def test_propertys_spt(inserts, removes):
+    """Test that after insertion and deletion the representaion invariants of
+    the tree are maintained."""
+
+    spt = SimplePrefixTree('average')
+    for insert in inserts:
+        spt.insert(str(insert[0]), insert[1], insert[0])
+
+    check_rep_vars_spt(spt)
+
+    for remove in removes:
+        spt.remove(remove)
+
+    check_rep_vars_spt(spt)
+
+
+def check_rep_vars_spt(spt: SimplePrefixTree) -> None:
+    """Test that after insertion and deletion the representaion invariants of
+    the tree are maintained."""
+    if spt.is_empty():
+        assert spt.subtrees == []
+    else:
+        if spt.subtrees != []:
+            assert isinstance(spt.value, list)
+
+        assert spt.subtrees == sorted(spt.subtrees, key=lambda spt: spt.weight,
+                                      reverse=True)
+
+        sumed_weight_len = calc_sumed_weight_len_spt(spt)
+
+        assert sumed_weight_len[0] / sumed_weight_len[1] == spt.weight
+
+        assert sumed_weight_len[1] == len(spt)
+
+        for subtree in spt.subtrees:
+            check_rep_vars_spt(subtree)
+
+def calc_sumed_weight_len_spt(spt: SimplePrefixTree):
+    if spt.is_empty():
+        return 0, 0
+    elif spt.subtrees == []:
+        return spt.weight, 1
+    else:
+        weight = 0
+        leangth = 0
+        for subtree in spt.subtrees:
+           w_l = calc_sumed_weight_len_spt(subtree)
+           weight += w_l[0]
+           leangth += w_l[1]
+        return weight, leangth
 
 if __name__ == '__main__':
-    print (random_string(123))
     pytest.main(['prefix_tree_tests.py', 'v'])
-
-    test_autocomplete()
-
