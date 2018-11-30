@@ -121,7 +121,7 @@ class SimplePrefixTree(Autocompleter):
     # _weight_type: A string that specifies whether the weight of the
     # tree will be calculated as the 'sum' or the 'average' of the weights of
     # each leaf value in the tree.
-    _weight_type: bool
+    _weight_type: str
     # _len: is the number of values currently stored in the tree
     _len: int
     # _summed_weight: this is the sum of the weights inserted into self
@@ -239,17 +239,17 @@ class SimplePrefixTree(Autocompleter):
         """
 
         depth = len(self.value)
-        subtree_index = self._find_subtree_with_value(prefix[:(depth + 1)])
 
         new_leaf = False
 
         if depth == len(prefix):
-            # We have reached the end of the prefix and will add a leaf.
-            i = self._find_subtree_with_value(value)
-            if i is not None:
-                self.subtrees[i].weight += weight
-                self.subtrees[i]._summed_weight += weight
-                self._fix_subtree_at_index(i)
+            # We have reached the end of the prefix and will add a leaf or
+            # add our weight to an existing one.
+            leaf_index = self._find_leaf_with_value(value)
+            if leaf_index is not None:
+                self.subtrees[leaf_index].weight += weight
+                self.subtrees[leaf_index]._summed_weight += weight
+                self._fix_subtree_at_index(leaf_index)
                 new_leaf = False
             else:
                 subtree = SimplePrefixTree(self._weight_type)
@@ -260,19 +260,22 @@ class SimplePrefixTree(Autocompleter):
                 self._add_subtree(subtree)
                 new_leaf = True
 
-        elif subtree_index is None:  # depth < len(prefix)
-            # No prefix exists in the subtree so we add a new subtree.
-            subtree = SimplePrefixTree(self._weight_type)
-            subtree.value = prefix[:(depth + 1)]
-            new_leaf = subtree._insert_helper(value, weight, prefix)
-            self._add_subtree(subtree)
-
         else:
-            # A branch already exists so we go down it.
-            new_leaf = self.subtrees[subtree_index]._insert_helper(value,
-                                                                   weight,
-                                                                   prefix)
-            self._fix_subtree_at_index(subtree_index)
+            path_index = self._find_non_leaf_with_value(prefix[:(depth + 1)])
+
+            if path_index is None:  # depth < len(prefix)
+                # No prefix exists in the subtree so we add a new subtree.
+                subtree = SimplePrefixTree(self._weight_type)
+                subtree.value = prefix[:(depth + 1)]
+                new_leaf = subtree._insert_helper(value, weight, prefix)
+                self._add_subtree(subtree)
+
+            else:
+                # A subtree already exists so we go down it.
+                new_leaf = self.subtrees[path_index]._insert_helper(value,
+                                                                       weight,
+                                                                       prefix)
+                self._fix_subtree_at_index(path_index)
 
         if new_leaf:
             self._len += 1
@@ -318,7 +321,7 @@ class SimplePrefixTree(Autocompleter):
             self._len = 0
             return length
         else:
-            subtree_index = self._find_subtree_with_value(prefix[:(depth + 1)])
+            subtree_index = self._find_non_leaf_with_value(prefix[:(depth + 1)])
 
             if subtree_index is not None:
                 subtree = self.subtrees[subtree_index]
@@ -368,12 +371,21 @@ class SimplePrefixTree(Autocompleter):
 
             self.weight = self._summed_weight / len(self)
 
-    def _find_subtree_with_value(self, value: Any) -> Optional[int]:
-        """Finds a subtree that matches a given  prefix and returns its index
-        or None is it cant find one.
-        """
+    def _find_non_leaf_with_value(self, value: Any) -> Optional[int]:
+        """ Finds a none leaf subtree with <value> and returns its index.
+        If no subtree can be found it returns None"""
         for i in range(0, len(self.subtrees)):
-            if self.subtrees[i].value == value:
+            subtree = self.subtrees[i]
+            if subtree.value == value and not subtree.is_leaf():
+                return i
+        return None
+
+    def _find_leaf_with_value(self, value: Any) -> Optional[int]:
+        """ Finds a leaf subtree with <value> and returns its index.
+        If no subtree can be found it returns None"""
+        for i in range(0, len(self.subtrees)):
+            subtree = self.subtrees[i]
+            if subtree.value == value and subtree.is_leaf():
                 return i
         return None
 
@@ -398,7 +410,7 @@ class SimplePrefixTree(Autocompleter):
                 # Switch with index to right
                 self.subtrees[index + 1], self.subtrees[index] = \
                     subtree, self.subtrees[index + 1]
-                index += 1 #TODO MAKE THIS CHANFE IN Compressed subtree
+                index += 1
             else:
                 # Current position ok
                 return
@@ -433,15 +445,15 @@ class SimplePrefixTree(Autocompleter):
             return []
 
     def _get_leaves_greedy(self, limit: Optional[int]) -> (List[Tuple[Any, float]]):
-        # THIS VERSION IS GREEDY (MOST EFFICIENT)
-        # IF YOU WANT ALL THE OBJECTS, SET THIS LIMIT TO LEN(SELF)
-        """ The return value is a list with a tuple (value, weight) for each leaf.
-        This is ordered in non-increasing weight.
+        """ The return value is a list with a tuple (value, weight)
+         for each leaf. This is ordered by non-increasing weight.
+         The list will contain all the leafs found in a greedy search up to
+         limit or all the leafs if limit is None.
         """
 
         if self.is_empty():
             return []
-        elif self.subtrees == []:
+        elif self.is_leaf():
             # Reached leaf node
             return [(self.value, self.weight)]
         else:
@@ -455,7 +467,7 @@ class SimplePrefixTree(Autocompleter):
             for subtree in self.subtrees:
 
                 new_leaves = subtree._get_leaves_greedy(limit)
-                leaves = self._merge_leafs(leaves, new_leaves)
+                leaves = _merge_leafs(leaves, new_leaves)
                 # Reduce limit by number of leaves collected
                 limit -= len(new_leaves)
 
@@ -463,32 +475,6 @@ class SimplePrefixTree(Autocompleter):
                     break
 
             return leaves
-
-    def _merge_leafs(self, old_leaves, new_leaves):
-        """ Merges two list of already sorted leaves together and returns a new
-        sorted list of leafs contaning all of the
-        elements of old and new_leafs
-        """
-        # Based of a portion of merge sort. Algorithm putting two sorted
-        # list together.
-        a = 0
-        b = 0
-        merged_leaves = []
-        while a < len(old_leaves) and b < len(new_leaves):
-            if old_leaves[a][1] >= new_leaves[b][1]:
-                merged_leaves.append(old_leaves[a])
-                a += 1
-            else:
-                merged_leaves.append(new_leaves[b])
-                b += 1
-        while a < len(old_leaves):
-            merged_leaves.append(old_leaves[a])
-            a += 1
-        while b < len(new_leaves):
-            merged_leaves.append(new_leaves[b])
-            b += 1
-
-        return merged_leaves
 
 
 ################################################################################
@@ -629,7 +615,20 @@ class CompressedPrefixTree(Autocompleter):
                 1) not in this Autocompleter
                 2) was previously inserted with the SAME prefix sequence
         """
-        self._insert_helper(value, weight, prefix)
+        # The empty prefix case
+        if prefix == [] and self.value == [] and \
+                self._find_leaf_with_value(value) is None:
+
+            cpt = CompressedPrefixTree(self._weight_type)
+            cpt.weight = weight
+            cpt._summed_weight = weight
+            cpt._len = 1
+            cpt.value = value
+            self._add_subtree(cpt)
+            self._len += 1
+            self._calculate_weight()
+        else:
+            self._insert_helper(value, weight, prefix)
 
     def _insert_helper(self, value: Any, weight: float, prefix: List) -> bool:
         """This helps to insert the given value into this Autocompleter.
@@ -793,7 +792,7 @@ class CompressedPrefixTree(Autocompleter):
         novel_prefix = None
 
         for i in range(len(self.subtrees)):
-            if self.subtrees[i].subtrees != []:  # Not a leaf
+            if not self.subtrees[i].is_leaf():  # Not a leaf
                 novel_prefix = _share_prefix(self.subtrees[i].value,
                                              sequence, len(self.value))
                 if novel_prefix != []:
@@ -827,9 +826,7 @@ class CompressedPrefixTree(Autocompleter):
         for i in range(0, len(self.subtrees)):
             if (self.subtrees[i].value == value
                     and not self.subtrees[i].subtrees):
-
                 return i
-
         return None
 
     def _find_prefix_subtree(self, sequence: List) -> Optional[int]:
@@ -840,8 +837,8 @@ class CompressedPrefixTree(Autocompleter):
         """
         for i in range(len(self.subtrees)):
             subtree = self.subtrees[i]
-            if not subtree.subtrees == []:
-                if _is_prefix(subtree.value, sequence): # TODO we could do subtree.value[n:], sequence[n:] were n is len(self.value)
+            if not subtree.is_leaf():
+                if _is_prefix(subtree.value, sequence):
                     return i
         return None
 
@@ -917,6 +914,7 @@ class CompressedPrefixTree(Autocompleter):
         If limit is None, return *every* match for the given prefix.
 
         Precondition: limit is None or limit > 0.
+
         >>> cpt = CompressedPrefixTree('sum')
         >>> cpt.insert('swell', 75, ['s', 'w', 'e', 'l', 'l'])
         >>> cpt.insert('sweet', 50, ['s', 'w', 'e', 'e', 't'])
@@ -939,8 +937,53 @@ class CompressedPrefixTree(Autocompleter):
         >>> cpt.autocomplete(['s', 'w', 'a'])
         [('swap', 76), ('swat', 51)]
         """
-        raise NotImplementedError
-        # TODO: implement
+        assert not(self.is_leaf() or self.is_empty()) # TODO for testing remove
+
+        if prefix == []:
+            return self._get_leaves_greedy()
+        else:
+            for subtree in self.subtrees:
+                if not subtree.is_leaf():
+                    if _is_prefix(prefix, subtree.value):
+                        return subtree._get_leaves_greedy(limit)
+                    elif _is_prefix(subtree.value, prefix):
+                        return subtree.autocomplete(prefix, limit)
+                    else:
+                        pass
+
+            return []
+
+    def _get_leaves_greedy(self, limit: Optional[int]) -> (List[Tuple[Any, float]]):
+        """ The return value is a list with a tuple (value, weight)
+         for each leaf. This is ordered by non-increasing weight.
+         The list will contain all the leafs found in a greedy search up to
+         limit or all the leafs if limit is None.
+        """
+
+        if self.is_empty():
+            return []
+        elif self.is_leaf():
+            # Reached leaf node
+            return [(self.value, self.weight)]
+        else:
+            if limit is None:
+                limit = len(self)
+
+            leaves = []
+
+            # non empty non-leaf case
+            # Here we want to collect up to limit number of leafs
+            for subtree in self.subtrees:
+
+                new_leaves = subtree._get_leaves_greedy(limit)
+                leaves = _merge_leafs(leaves, new_leaves)
+                # Reduce limit by number of leaves collected
+                limit -= len(new_leaves)
+
+                if limit <= 0:
+                    break
+
+            return leaves
 
     def remove(self, prefix: List) -> None:
         """Remove all values that match the given prefix.
@@ -1035,7 +1078,8 @@ class CompressedPrefixTree(Autocompleter):
                         subtree_len = subtree._len
                         to_remove = subtree._remove_helper(prefix, False)
                         if to_remove:
-                            self._remove_subtree_and_update_self(subtree, subtree_len)
+                            self._remove_subtree_and_update_self(subtree,
+                                                                 subtree_len)
                         else:
                             pos += 1
                     if len(self.subtrees) == 0:
@@ -1055,6 +1099,32 @@ class CompressedPrefixTree(Autocompleter):
         self.subtrees.remove(subtree)
         self._calculate_weight()
 
+
+def _merge_leafs(old_leaves, new_leaves):
+    """ Merges two list of already sorted leaves together and returns a new
+    sorted list of leafs contaning all of the
+    elements of old and new_leafs
+    """
+    # Based of a portion of merge sort. Algorithm putting two sorted
+    # list together.
+    a = 0
+    b = 0
+    merged_leaves = []
+    while a < len(old_leaves) and b < len(new_leaves):
+        if old_leaves[a][1] >= new_leaves[b][1]:
+            merged_leaves.append(old_leaves[a])
+            a += 1
+        else:
+            merged_leaves.append(new_leaves[b])
+            b += 1
+    while a < len(old_leaves):
+        merged_leaves.append(old_leaves[a])
+        a += 1
+    while b < len(new_leaves):
+        merged_leaves.append(new_leaves[b])
+        b += 1
+
+    return merged_leaves
 
 def _share_prefix(a: list, b: list, min: int) -> List:
     """ If there is a common prefix amongst <a> and <b>, longer
@@ -1099,14 +1169,13 @@ def _is_prefix(prefix, items) -> bool:
     >>> _is_prefix(['b', 'l', 'a'], ['b', 'l', 'd'])
     False
     """
+    if len(prefix) > len(items):
+        return False
+
     for p, i in zip(prefix, items):
         if p != i:
             return False
     return True
-
-
-
-
 
 if __name__ == '__main__':
     # TODO REMOVE DOCTEST import

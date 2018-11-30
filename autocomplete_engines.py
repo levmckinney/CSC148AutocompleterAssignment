@@ -167,7 +167,7 @@ class SentenceAutocompleteEngine:
                 weight = float(row[1])
 
                 if words != []:
-                    self.autocompleter.insert(' '.join(words), weight, words)
+                    self.autocompleter.insert(_sanitize(dirty_line), weight, words)
 
     def autocomplete(self, prefix: str,
                      limit: Optional[int] = None) -> List[Tuple[str, float]]:
@@ -309,6 +309,7 @@ def _sanitize(line: str) -> str:
     line = ''.join(filtered_chars)
     return line
 
+
 def _filter_conditions(a: str) -> bool:
     """
     >>> _filter_conditions('a')
@@ -380,4 +381,4 @@ if __name__ == '__main__':
 
     # print(sample_letter_autocomplete())
     # print(sample_sentence_autocomplete())
-    sample_melody_autocomplete()
+    # sample_melody_autocomplete()

@@ -151,7 +151,8 @@ def check_rep_vars_cpt(cpt: CompressedPrefixTree) -> None:
 
         # check for redundent trees
         if len(cpt.subtrees) == 1:
-             assert cpt.subtrees[0].subtrees == []
+            assert cpt.subtrees[0].is_leaf() or cpt.subtrees[0].subtrees[0]\
+                 .is_leaf() # TODO NEED TO CHECK this assumtion
 
         # check subtrees are sorted
         assert cpt.subtrees == sorted(cpt.subtrees, key=lambda spt: spt.weight,
@@ -214,6 +215,7 @@ def check_rep_vars_spt(spt: SimplePrefixTree) -> None:
         for subtree in spt.subtrees:
             check_rep_vars_spt(subtree)
 
+
 def calc_sumed_weight_len_spt(spt: SimplePrefixTree):
     if spt.is_empty():
         return 0, 0
@@ -227,6 +229,7 @@ def calc_sumed_weight_len_spt(spt: SimplePrefixTree):
            weight += w_l[0]
            leangth += w_l[1]
         return weight, leangth
+
 
 if __name__ == '__main__':
     pytest.main(['prefix_tree_tests.py', 'v'])
