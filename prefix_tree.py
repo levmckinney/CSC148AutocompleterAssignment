@@ -942,16 +942,18 @@ class CompressedPrefixTree(Autocompleter):
         if prefix == []:
             return self._get_leaves_greedy()
         else:
+            leafs = []
             for subtree in self.subtrees:
                 if not subtree.is_leaf():
                     if _is_prefix(prefix, subtree.value):
-                        return subtree._get_leaves_greedy(limit)
+                        leafs = _merge_leafs(subtree._get_leaves_greedy(limit),
+                                             leafs)
                     elif _is_prefix(subtree.value, prefix):
-                        return subtree.autocomplete(prefix, limit)
+                        leafs = _merge_leafs(subtree.autocomplete(prefix, limit)
+                                             , leafs)  # TODO WE may be able to direcly return
                     else:
                         pass
-
-            return []
+            return leafs
 
     def _get_leaves_greedy(self, limit: Optional[int]) -> (List[Tuple[Any, float]]):
         """ The return value is a list with a tuple (value, weight)
