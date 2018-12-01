@@ -253,7 +253,7 @@ class SimplePrefixTree(Autocompleter):
                 new_leaf = False
             else:
                 subtree = SimplePrefixTree(self._weight_type)
-                subtree.value = value  # TODO this is an alias may cause problems for mutble tpyes
+                subtree.value = value
                 subtree.weight = weight
                 subtree._summed_weight = weight
                 subtree._len = 1
@@ -273,8 +273,8 @@ class SimplePrefixTree(Autocompleter):
             else:
                 # A subtree already exists so we go down it.
                 new_leaf = self.subtrees[path_index]._insert_helper(value,
-                                                                       weight,
-                                                                       prefix)
+                                                                    weight,
+                                                                    prefix)
                 self._fix_subtree_at_index(path_index)
 
         if new_leaf:
@@ -444,7 +444,8 @@ class SimplePrefixTree(Autocompleter):
                     return subtree.autocomplete(prefix, limit)
             return []
 
-    def _get_leaves_greedy(self, limit: Optional[int]) -> (List[Tuple[Any, float]]):
+    def _get_leaves_greedy(self, limit: Optional[int]) -> \
+            (List[Tuple[Any, float]]):
         """ The return value is a list with a tuple (value, weight)
          for each leaf. This is ordered by non-increasing weight.
          The list will contain all the leafs found in a greedy search up to
@@ -636,12 +637,12 @@ class CompressedPrefixTree(Autocompleter):
                 subtree = self.subtrees[i]
                 if subtree.is_leaf() and subtree.value == value:
 
-                        subtree.weight += weight
-                        subtree._summed_weight += weight
-                        self._calculate_len_weight()
-                        # do not need to increase len since nothing was added
-                        self._fix_subtree_at_index(i)
-                        return True
+                    subtree.weight += weight
+                    subtree._summed_weight += weight
+                    self._calculate_len_weight()
+                    # do not need to increase len since nothing was added
+                    self._fix_subtree_at_index(i)
+                    return True
 
             # We did not find a subtree to add weight to so we can add a leaf
 
@@ -689,13 +690,6 @@ class CompressedPrefixTree(Autocompleter):
                 self.subtrees.append(copy_self)
 
                 self._insert_helper(value, weight, prefix, len(self.value))
-                # TODO
-                # if self.value == prefix:
-                #     # Goes to the value is prefix case
-                #     self._insert_helper(value, weight, prefix, len(self.value))
-                # else:
-                #     # Add on the needed leaf with prefix above it
-                #     self._add_depth_2_subtree(value, prefix, weight)
 
                 return True
             else:  # We can't insert here
@@ -828,18 +822,17 @@ class CompressedPrefixTree(Autocompleter):
         >>> cpt.insert('swat', 51, ['s', 'w', 'a', 't'])
         >>> cpt.insert('swap', 76, ['s', 'w', 'a', 'p'])
         >>> print(cpt)
-        [] (252)
-          ['s', 'w'] (252)
-            ['s', 'w', 'a'] (127)
-              ['s', 'w', 'a', 'p'] (76)
-                swap (76)
-              ['s', 'w', 'a', 't'] (51)
-                swat (51)
-            ['s', 'w', 'e'] (125)
-              ['s', 'w', 'e', 'l', 'l'] (75)
-                swell (75)
-              ['s', 'w', 'e', 'e', 't'] (50)
-                sweet (50)
+        ['s', 'w'] (252)
+          ['s', 'w', 'a'] (127)
+            ['s', 'w', 'a', 'p'] (76)
+              swap (76)
+            ['s', 'w', 'a', 't'] (51)
+              swat (51)
+          ['s', 'w', 'e'] (125)
+            ['s', 'w', 'e', 'l', 'l'] (75)
+              swell (75)
+            ['s', 'w', 'e', 'e', 't'] (50)
+              sweet (50)
         <BLANKLINE>
         >>> cpt.autocomplete(['s', 'w', 'a'])
         [('swap', 76), ('swat', 51)]
@@ -936,7 +929,9 @@ class CompressedPrefixTree(Autocompleter):
 
             # self is an incompresible subtree
             return True
+        return False
 
+    # TODO: REMOVE PRINT FUNCTIONS
     def _print_wl(self) -> str:
         """Return a string representation of this tree.
         This now includes length in edition to weight.
@@ -964,10 +959,10 @@ class CompressedPrefixTree(Autocompleter):
         self.value = []
 
 
-def _merge_leafs(old_leaves, new_leaves):
+def _merge_leafs(old_leaves: List, new_leaves: List) -> List:
     """ Merges two list of already sorted leaves together and returns a new
     sorted list of leafs contaning all of the
-    elements of old and new_leafs
+    elements of old and new_leaves.
     """
     # Based of a portion of merge sort. Algorithm putting two sorted
     # list together.
@@ -1012,10 +1007,10 @@ def _share_prefix(a: list, b: list) -> List:
     return short[:]
 
 
-def _is_prefix(prefix, items) -> bool:
+def _is_prefix(prefix: Any, items: Any) -> bool:
     """ If <prefix> is a prefix of <items>, return True.
     Otherwise, return False.
-    Note: <prefix> and <items> must be iterable
+    Pre-condition: <prefix> and <items> are iterable
     >>> _is_prefix(['b', 'l', 'a'], ['b', 'l', 'a'])
     True
     >>> _is_prefix(['b', 'l', 'a'], ['b', 'l', 'a', 'c', 'k'])
