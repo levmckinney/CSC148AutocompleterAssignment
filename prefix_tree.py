@@ -857,7 +857,7 @@ class CompressedPrefixTree(Autocompleter):
                                              leafs)
                     elif _is_prefix(subtree.value, prefix):
                         leafs = _merge_leafs(subtree.autocomplete(prefix, limit)
-                                             , leafs)  # TODO WE may be able to direcly return
+                                             , leafs)  # TODO WE may fbe able to direcly return
                     else:
                         pass
             return leafs
@@ -929,7 +929,7 @@ class CompressedPrefixTree(Autocompleter):
                 self.value = z_subtree.value
                 self._len = z_subtree._len
                 self.weight = z_subtree.weight
-                self._summed_weight = z_subtree.subtrees
+                self._summed_weight = z_subtree._summed_weight
                 self.subtrees = z_subtree.subtrees
 
             # self is an incompresible subtree
