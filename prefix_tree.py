@@ -64,7 +64,6 @@ class Autocompleter:
         """
         raise NotImplementedError
 
-
 ################################################################################
 # SimplePrefixTree (Tasks 1-3)
 ################################################################################
@@ -204,8 +203,6 @@ class SimplePrefixTree(Autocompleter):
                 1) not in this Autocompleter
                 2) was previously inserted with the SAME prefix sequence
 
-
-
         >>> spt = SimplePrefixTree('sum')
         >>> spt.insert('hello', 20, ['h','e','l','l','o'])
         >>> spt.insert('hello', 7, ['h','e','l','l','o'])
@@ -218,12 +215,6 @@ class SimplePrefixTree(Autocompleter):
                   ['h', 'e', 'l', 'l', 'o'] (27)
                     hello (27)
         <BLANKLINE>
-        >>> spt.__len__()
-        1
-        >>> spt.subtrees[0].__len__()
-        1
-        >>> spt.subtrees[0].subtrees[0].subtrees[0].subtrees[0].subtrees[0].__len__()
-        1
         """
         self._insert_helper(value, weight, prefix)
 
@@ -328,8 +319,6 @@ class SimplePrefixTree(Autocompleter):
                 num_removed = subtree._remove_helper(prefix)
 
                 self._len -= num_removed
-
-                assert self._len >= 0 # TODO for testing remove
 
                 self._calculate_weight()
 
@@ -893,7 +882,7 @@ class CompressedPrefixTree(Autocompleter):
 
     def _remove_helper(self, prefix: List) -> bool:
         """Remove all values that match the given prefix. Returns true if
-        sucsesfully removed prefix.
+        successfully removed prefix.
         """
         if prefix == []:
             self._make_empty()
@@ -918,7 +907,7 @@ class CompressedPrefixTree(Autocompleter):
 
             elif len(self.subtrees) == 1 \
                 and not self.subtrees[0].is_leaf():
-                # Premote good z_subtree to replace subtree
+                # Promote good z_subtree to replace subtree
                 z_subtree = self.subtrees[0]
                 self.value = z_subtree.value
                 self._len = z_subtree._len
@@ -927,28 +916,9 @@ class CompressedPrefixTree(Autocompleter):
                 self.subtrees = z_subtree.subtrees
                 return True
 
-            # self is an incompresible subtree
+            # self is an incompressible subtree
             return True
         return False
-
-    # TODO: REMOVE PRINT FUNCTIONS
-    def _print_wl(self) -> str:
-        """Return a string representation of this tree.
-        This now includes length in edition to weight.
-        """
-        print(self._all_indented())
-
-    def _all_indented(self, depth: int = 0) -> str:
-        """Return an indented string representation of this tree.
-        The indentation level is specified by the <depth> parameter.
-        """
-        if self.is_empty():
-            return ''
-        else:
-            s = '  ' * depth + f'{self.value} ({self.weight}) ({self._len})\n'
-            for subtree in self.subtrees:
-                s += subtree._all_indented(depth + 1)
-            return s
 
     def _make_empty(self) -> None:
         """Make the self an empty subtree"""
@@ -1027,9 +997,8 @@ def _is_prefix(prefix: Any, items: Any) -> bool:
     return True
 
 if __name__ == '__main__':
-    # TODO REMOVE DOCTEST import
-    import doctest
-    doctest.testmod()
+    # import doctest
+    # doctest.testmod()
     import python_ta
     python_ta.check_all(config={
         'max-nested-blocks': 4

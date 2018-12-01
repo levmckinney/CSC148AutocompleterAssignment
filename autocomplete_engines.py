@@ -255,15 +255,7 @@ class MelodyAutocompleteEngine:
                 n = len(pitch_and_duration)
 
                 notes = []
-
-                # p is the even indexes and  d is the odd indexes
-                for p, d in zip(range(0, n, 2), range(1, n, 2)):
-                    str_note = pitch_and_duration[p], pitch_and_duration[d]
-                    # Stop looking for new notes if we have reached empty stings
-                    if str_note[0] == '' or str_note[1] == '':
-                        break
-                    note = int(str_note[0]), int(str_note[1])
-                    notes.append(note)
+                _make_notes(notes, pitch_and_duration, n)
 
                 intervals = []
                 for i in range(len(notes) - 1):
@@ -295,6 +287,18 @@ class MelodyAutocompleteEngine:
         self.autocompleter.remove(prefix)
 
 
+def _make_notes(notes: List, pitch_and_duration: Tuple[int, int], n: int) \
+        -> None:
+    # p is the even indexes and  d is the odd indexes
+    for p, d in zip(range(0, n, 2), range(1, n, 2)):
+        str_note = pitch_and_duration[p], pitch_and_duration[d]
+        # Stop looking for new notes if we have reached empty stings
+        if str_note[0] == '' or str_note[1] == '':
+            break
+        note = int(str_note[0]), int(str_note[1])
+        notes.append(note)
+
+
 def _sanitize(line: str) -> str:
     """This function takes a string converts it to lower case, removes any
     non-alphanumeric characters (e.g. \n, !, &, @ ... etc.) white spaces should
@@ -313,6 +317,9 @@ def _sanitize(line: str) -> str:
 
 def _filter_conditions(a: str) -> bool:
     """
+    Return True when <a> (a single character) is allowed to remain in a string,
+    simply by checking that it is one of three things: a letter, number or
+    space. Otherwise, return False.
     >>> _filter_conditions('a')
     True
     >>> _filter_conditions('123')
@@ -377,9 +384,9 @@ if __name__ == '__main__':
 
     # This is used to increase the recursion limit so that your sample runs
     # work even for fairly tall simple prefix trees.
-    import sys
-    sys.setrecursionlimit(5000)
-
-    print(sample_letter_autocomplete())
-    print(sample_sentence_autocomplete())
-    sample_melody_autocomplete()
+    # import sys
+    # sys.setrecursionlimit(5000)
+    #
+    # print(sample_letter_autocomplete())
+    # print(sample_sentence_autocomplete())
+    # sample_melody_autocomplete()
