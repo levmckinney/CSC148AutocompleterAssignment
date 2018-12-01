@@ -636,8 +636,9 @@ class CompressedPrefixTree(Autocompleter):
                 subtree = self.subtrees[i]
                 if subtree.is_leaf() and subtree.value == value:
 
-                        self.weight += weight
-                        self._summed_weight += weight
+                        subtree.weight += weight
+                        subtree._summed_weight += weight
+                        self._calculate_len_weight()
                         # do not need to increase len since nothing was added
                         self._fix_subtree_at_index(i)
                         return True
@@ -895,31 +896,32 @@ class CompressedPrefixTree(Autocompleter):
 
     def remove(self, prefix: List) -> None:
         """Remove all values that match the given prefix."""
-        self.remove(prefix)
+        self._remove_helper(prefix)
 
     def _remove_helper(self, prefix: List) -> bool:
         """Remove all values that match the given prefix. Returns true if
-        sucsesfully removed prefix
+        sucsesfully removed prefix.
         """
-
         if prefix == []:
             return self._make_empty()
         elif self.is_leaf():
             return False
         elif _is_prefix(prefix, self.value):
             self._make_empty()
+            return True
         elif _is_prefix(self.value, prefix):
             for i in range(len(self.subtrees)):
                 subtree = self.subtrees[i]
-                if subtree.remove(prefix):
+                if subtree._remove_helper(prefix):
                     if subtree.is_empty():
                         self.subtrees.remove(subtree)
-                        return True
+                        break
 
             self._calculate_len_weight()
             if self.is_empty():
                 self._make_empty()
                 return True
+
             elif len(self.subtrees) == 1 \
                 and not self.subtrees[0].is_leaf():
                 # Premote good z_subtree to replace subtree
@@ -931,7 +933,6 @@ class CompressedPrefixTree(Autocompleter):
                 self.subtrees = z_subtree.subtrees
 
             # self is an incompresible subtree
-
             return True
 
     def _make_empty(self):
