@@ -137,10 +137,10 @@ def test_propertys_cpt(inserts, removes):
 
     check_rep_vars_cpt(cpt)
 
-    # for remove in removes:
-    #     cpt.remove(remove)
-    #
-    # check_rep_vars_cpt(cpt)
+    for remove in removes:
+        cpt.remove(remove)
+
+    check_rep_vars_cpt(cpt)
 
 
 def check_rep_vars_cpt(cpt: CompressedPrefixTree) -> None:
@@ -169,6 +169,10 @@ def check_rep_vars_cpt(cpt: CompressedPrefixTree) -> None:
 
         # check still subtrees are good
         for subtree in cpt.subtrees:
+            # Subtree value should be prefix of tree value
+            if not subtree.is_leaf():
+                assert _is_prefix(cpt.value, subtree.value)
+
             check_rep_vars_cpt(subtree)
 
 
@@ -213,7 +217,11 @@ def check_rep_vars_spt(spt: SimplePrefixTree) -> None:
 
         assert sumed_weight_len[1] == len(spt)
 
+        # check still subtrees are good
         for subtree in spt.subtrees:
+            # Subtree value should be prefix of tree value
+            if not subtree.is_leaf():
+                assert _is_prefix(spt.value, subtree.value)
             check_rep_vars_spt(subtree)
 
 
@@ -230,6 +238,16 @@ def calc_sumed_weight_len_spt(spt: SimplePrefixTree):
            weight += w_l[0]
            leangth += w_l[1]
         return weight, leangth
+
+
+def _is_prefix(prefix, items) -> bool:
+    if len(prefix) > len(items):
+        return False
+
+    for p, i in zip(prefix, items):
+        if p != i:
+            return False
+    return True
 
 
 if __name__ == '__main__':
