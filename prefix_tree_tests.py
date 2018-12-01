@@ -300,8 +300,28 @@ def test_large_cpt_insert() -> None:
     >>> string = 'all i want is nothing more'
     >>> for i in range(len(prefix), -1, -1): \
         cpt.insert(string[:i], i+1, prefix[:i])
+    >>> cpt._print_wl()
+    ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', 'i', 's']
+    ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', 'i', 's', ' ']
+    ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', 'i', 's', ' ', 'n']
+    ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', 'i', 's', ' ', 'n', 'o']
+    ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', 'i', 's', ' ', 'n', 'o', 't']
+    ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', 'i', 's', ' ', 'n', 'o', 't', 'h']
+    ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', 'i', 's', ' ', 'n', 'o', 't', 'h', 'i']
+    ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', 'i', 's', ' ', 'n', 'o', 't', 'h', 'i', 'n']
+    ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', 'i', 's', ' ', 'n', 'o', 't', 'h', 'i', 'n', 'g']
+    ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', 'i', 's', ' ', 'n', 'o', 't', 'h', 'i', 'n', 'g', ' ']
+    ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', 'i', 's', ' ', 'n', 'o', 't', 'h', 'i', 'n', 'g', ' ', 'm', 'o']
+    ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', 'i', 's', ' ', 'n', 'o', 't', 'h', 'i', 'n', 'g', ' ', 'm', 'o', 'r']
+    ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', 'i', 's', ' ', 'n', 'o', 't', 'h', 'i', 'n', 'g', ' ', 'm', 'o', 'r', 'e']
     """
-
+    prefix = ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', \
+                  'i', 's', ' ', 'n', 'o', 't', 'h', 'i', 'n', 'g', ' ', \
+                  'm', 'o', 'r', 'e']
+    string = 'all i want is nothing more'
+    for i in range(len(prefix)):
+        print(prefix[:i])
+        print(string[:i])
 
 @given(inserts=lists(
                     tuples(
