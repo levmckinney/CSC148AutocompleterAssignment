@@ -466,13 +466,13 @@ class SimplePrefixTree(Autocompleter):
             # Here we want to collect up to limit number of leafs
             for subtree in self.subtrees:
 
+                if limit <= 0:
+                    break
+
                 new_leaves = subtree._get_leaves_greedy(limit)
                 leaves = _merge_leafs(leaves, new_leaves)
                 # Reduce limit by number of leaves collected
                 limit -= len(new_leaves)
-
-                if limit <= 0:
-                    break
 
             return leaves
 
@@ -844,25 +844,25 @@ class CompressedPrefixTree(Autocompleter):
         >>> cpt.autocomplete(['s', 'w', 'a'])
         [('swap', 76), ('swat', 51)]
         """
-        assert not(self.is_leaf() or self.is_empty()) # TODO for testing remove
 
-        if prefix == []:
-            return self._get_leaves_greedy()
-        else:
-            leafs = []
+        if self.is_leaf():
+            return []
+        elif _is_prefix(prefix, self.value):
+
+            return self._get_leaves_greedy(limit)
+
+        elif _is_prefix(self.value, prefix):
             for subtree in self.subtrees:
                 if not subtree.is_leaf():
-                    if _is_prefix(prefix, subtree.value):
-                        leafs = _merge_leafs(subtree._get_leaves_greedy(limit),
-                                             leafs)
-                    elif _is_prefix(subtree.value, prefix):
-                        leafs = _merge_leafs(subtree.autocomplete(prefix, limit)
-                                             , leafs)  # TODO WE may fbe able to direcly return
-                    else:
-                        pass
-            return leafs
+                    auto = subtree.autocomplete(prefix, limit)
+                    if auto != []:
+                        return auto
+            return []
+        else:
+            return []
 
-    def _get_leaves_greedy(self, limit: Optional[int]) -> (List[Tuple[Any, float]]):
+    def _get_leaves_greedy(self, limit: Optional[int]) -> \
+            (List[Tuple[Any, float]]):
         """ The return value is a list with a tuple (value, weight)
          for each leaf. This is ordered by non-increasing weight.
          The list will contain all the leafs found in a greedy search up to
@@ -884,13 +884,13 @@ class CompressedPrefixTree(Autocompleter):
             # Here we want to collect up to limit number of leafs
             for subtree in self.subtrees:
 
+                if limit <= 0:
+                    break
+
                 new_leaves = subtree._get_leaves_greedy(limit)
                 leaves = _merge_leafs(leaves, new_leaves)
                 # Reduce limit by number of leaves collected
                 limit -= len(new_leaves)
-
-                if limit <= 0:
-                    break
 
             return leaves
 
@@ -903,7 +903,8 @@ class CompressedPrefixTree(Autocompleter):
         sucsesfully removed prefix.
         """
         if prefix == []:
-            return self._make_empty()
+            self._make_empty()
+            return True
         elif self.is_leaf():
             return False
         elif _is_prefix(prefix, self.value):
@@ -931,6 +932,7 @@ class CompressedPrefixTree(Autocompleter):
                 self.weight = z_subtree.weight
                 self._summed_weight = z_subtree._summed_weight
                 self.subtrees = z_subtree.subtrees
+                return True
 
             # self is an incompresible subtree
             return True
@@ -953,13 +955,14 @@ class CompressedPrefixTree(Autocompleter):
                 s += subtree._all_indented(depth + 1)
             return s
 
-    def _make_empty(self):
+    def _make_empty(self) -> None:
         """Make the self an empty subtree"""
         self.weight = 0
         self._summed_weight = 0
         self._len = 0
         self.subtrees = []
         self.value = []
+
 
 def _merge_leafs(old_leaves, new_leaves):
     """ Merges two list of already sorted leaves together and returns a new

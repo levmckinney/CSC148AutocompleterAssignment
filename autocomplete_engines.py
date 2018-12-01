@@ -167,7 +167,8 @@ class SentenceAutocompleteEngine:
                 weight = float(row[1])
 
                 if words != []:
-                    self.autocompleter.insert(_sanitize(dirty_line), weight, words)
+                    self.autocompleter.insert(_sanitize(dirty_line), weight,
+                                              words)
 
     def autocomplete(self, prefix: str,
                      limit: Optional[int] = None) -> List[Tuple[str, float]]:
@@ -339,7 +340,7 @@ def sample_letter_autocomplete() -> List[Tuple[str, float]]:
     engine = LetterAutocompleteEngine({
         # NOTE: you should also try 'data/google_no_swears.txt' for the file.
         'file': 'data/lotr.txt',
-        'autocompleter': 'simple',
+        'autocompleter': 'compressed',
         'weight_type': 'sum'
     })
     return engine.autocomplete('frodo d', 20)
