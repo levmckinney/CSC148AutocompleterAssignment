@@ -235,8 +235,21 @@ def test_cpt_remove() -> None:
       ['h', 'e', ' ', 'm', 'a', 'n'] (23.0) (1)
         he man (23.0) (1)
     <BLANKLINE>
+    >>> cpt.remove([])
+    >>> cpt._len == 0 and cpt._weight == 0.0
+    True
     """
-    pass
+    cpt = CompressedPrefixTree('sum')
+    cpt.insert('help', 10.0, ['h', 'e', 'l', 'p'])
+    cpt.insert('help', 2.0, ['h', 'e', 'l', 'p'])
+    cpt.insert('hello', 2.0, ['h', 'e', 'l', 'l', 'o'])
+    cpt.insert('he man', 23.0, ['h', 'e', ' ', 'm', 'a', 'n'])
+    cpt.insert('hello', 12.0, ['h', 'e', 'l', 'l', 'o'])
+    cpt.insert('bet', 14.0, ['b', 'e', 't'])
+    cpt.insert('bet', 200.0, ['b', 'e', 't'])
+    #cpt.insert('', 50.0, [])
+    cpt.insert('co', 130.0, ['c', 'o'])
+    cpt.remove(['h', 'e', 'l'])
     # cpt = CompressedPrefixTree("sum")
     # cpt.insert("hello", 100, ['h', 'e', 'l', 'l', 'o'])
     # cpt.remove(['h'])
@@ -277,6 +290,17 @@ def test_cpt_remove() -> None:
     # cpt.insert('swat', 51, ['s', 'w', 'a', 't'])
     # cpt.insert('swap', 76, ['s', 'w', 'a', 'p'])
     # cpt.remove(['s', 'w'])
+
+def test_large_cpt_insert() -> None:
+    """
+    >>> cpt = CompressedPrefixTree('sum')
+    >>> prefix = ['a', 'l', 'l', ' ', 'i', ' ', 'w', 'a', 'n', 't', ' ', \
+        'i', 's', ' ', 'n', 'o', 't', 'h', 'i', 'n', 'g', ' ',\
+        'm', 'o', 'r', 'e']
+    >>> string = 'all i want is nothing more'
+    >>> for i in range(len(prefix), -1, -1): \
+        cpt.insert(string[:i], i+1, prefix[:i])
+    """
 
 
 @given(inserts=lists(
@@ -406,7 +430,6 @@ def _is_prefix(prefix, items) -> bool:
     return True
 
 
-
-
 if __name__ == '__main__':
     pytest.main(['prefix_tree_tests.py', 'v'])
+    test_cpt_remove()
