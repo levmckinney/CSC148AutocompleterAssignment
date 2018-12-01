@@ -616,7 +616,7 @@ class CompressedPrefixTree(Autocompleter):
                 2) was previously inserted with the SAME prefix sequence
         """
         # The empty prefix case
-        assert self._insert_helper(value, weight, prefix, -1)
+        self._insert_helper(value, weight, prefix, -1)
 
     def _insert_helper(self, value: Any, weight: float, prefix: List,
                        len_parent: int) -> bool:
@@ -638,7 +638,6 @@ class CompressedPrefixTree(Autocompleter):
 
                         self.weight += weight
                         self._summed_weight += weight
-                        self._calculate_len_weight()
                         # do not need to increase len since nothing was added
                         self._fix_subtree_at_index(i)
                         return True
@@ -895,119 +894,53 @@ class CompressedPrefixTree(Autocompleter):
             return leaves
 
     def remove(self, prefix: List) -> None:
-        """Remove all values that match the given prefix.
-        >>> cpt = CompressedPrefixTree('sum')
-        >>> cpt.insert('help', 12, ['h', 'e', 'l', 'p'])
-        >>> cpt.insert('hello', 2, ['h', 'e', 'l', 'l', 'o'])
-        >>> cpt.insert('he man', 23, ['h', 'e', ' ', 'm', 'a', 'n'])
-        >>> cpt.insert('hello', 12, ['h', 'e', 'l', 'l', 'o'])
-        >>> print(cpt)
-        [] (49)
-          ['h', 'e'] (49)
-            ['h', 'e', 'l'] (26)
-              ['h', 'e', 'l', 'l', 'o'] (14)
-                hello (14)
-              ['h', 'e', 'l', 'p'] (12)
-                help (12)
-            ['h', 'e', ' ', 'm', 'a', 'n'] (23)
-              he man (23)
-        <BLANKLINE>
-        >>> cpt.remove(['h', 'e', 'l'])
-        >>> print(cpt)
-        [] (23)
-          ['h', 'e'] (23)
-            ['h', 'e', ' ', 'm', 'a', 'n'] (23)
-              he man (23)
-        <BLANKLINE>
-        >>> cpt.__len__()
-        1
-        >>> cpt.subtrees[0].__len__()
-        1
-        >>> cpt.subtrees[0].subtrees[0].__len__()
-        1
-        >>> cpt.subtrees[0].subtrees[0].subtrees[0].__len__()
-        1
-        >>> cpt.weight
-        23
-        >>> cpt.subtrees[0].weight
-        23
-        >>> cpt.subtrees[0].subtrees[0].weight
-        23
-        >>> cpt.subtrees[0].subtrees[0].subtrees[0].weight
-        23
-        >>> cpt = CompressedPrefixTree('sum')
-        >>> cpt.insert('swell', 75, ['s', 'w', 'e', 'l', 'l'])
-        >>> cpt.insert('sweet', 50, ['s', 'w', 'e', 'e', 't'])
-        >>> cpt.insert('swat', 51, ['s', 'w', 'a', 't'])
-        >>> cpt.insert('swap', 76, ['s', 'w', 'a', 'p'])
-        >>> print(cpt)
-        [] (252)
-          ['s', 'w'] (252)
-            ['s', 'w', 'a'] (127)
-              ['s', 'w', 'a', 'p'] (76)
-                swap (76)
-              ['s', 'w', 'a', 't'] (51)
-                swat (51)
-            ['s', 'w', 'e'] (125)
-              ['s', 'w', 'e', 'l', 'l'] (75)
-                swell (75)
-              ['s', 'w', 'e', 'e', 't'] (50)
-                sweet (50)
-        <BLANKLINE>
-        >>> cpt.remove(['s', 'w', 'a'])
-        >>> print(cpt)
-        [] (125)
-          ['s', 'w'] (125)
-            ['s', 'w', 'e'] (125)
-              ['s', 'w', 'e', 'l', 'l'] (75)
-                swell (75)
-              ['s', 'w', 'e', 'e', 't'] (50)
-                sweet (50)
-        <BLANKLINE>
+        """Remove all values that match the given prefix."""
+        self.remove(prefix)
+
+    def _remove_helper(self, prefix: List) -> bool:
+        """Remove all values that match the given prefix. Returns true if
+        sucsesfully removed prefix
         """
-        self._remove_helper(prefix, True)
 
-    def _remove_helper(self, prefix: List, is_root: bool) -> bool:
-        if self.is_empty():
-            return True
+        if prefix == []:
+            return self._make_empty()
         elif self.is_leaf():
-            if _is_prefix(prefix, self.value):
-                return True
             return False
-        elif self.weight == 0 and len(self.subtrees) == 0:
-            return True
-        else: # has subtrees
-            amount_to_check = len(self.value)
-            if amount_to_check <= len(prefix):
-                if _is_prefix(prefix[:amount_to_check], self.value):
-                    returned_values = []
-                    pos = 0
-                    while pos < len(self.subtrees):
-                        subtree = self.subtrees[pos]
-                        subtree_len = subtree._len
-                        to_remove = subtree._remove_helper(prefix, False)
-                        if to_remove:
-                            self._remove_subtree_and_update_self(subtree,
-                                                                 subtree_len)
-                        else:
-                            pos += 1
-                    if len(self.subtrees) == 0:
+        elif _is_prefix(prefix, self.value):
+            self._make_empty()
+        elif _is_prefix(self.value, prefix):
+            for i in range(len(self.subtrees)):
+                subtree = self.subtrees[i]
+                if subtree.remove(prefix):
+                    if subtree.is_empty():
+                        self.subtrees.remove(subtree)
                         return True
-            else:
-                if _is_prefix(prefix, self.value):
-                    return True
-            if is_root:
-                self._len = sum(subtree._len for subtree in self.subtrees)
-            self._calculate_weight()
-            return False
 
-    def _remove_subtree_and_update_self(self, subtree: CompressedPrefixTree, \
-                                        subtree_len: int) -> None:
-        self._summed_weight -= subtree._summed_weight
-        self._len -= subtree_len
-        self.subtrees.remove(subtree)
-        self._calculate_weight()
+            self._calculate_len_weight()
+            if self.is_empty():
+                self._make_empty()
+                return True
+            elif len(self.subtrees) == 1 \
+                and not self.subtrees[0].is_leaf():
+                # Premote good z_subtree to replace subtree
+                z_subtree = self.subtrees[0]
+                self.value = z_subtree.value
+                self._len = z_subtree._len
+                self.weight = z_subtree.weight
+                self._summed_weight = z_subtree.subtrees
+                self.subtrees = z_subtree.subtrees
 
+            # self is an incompresible subtree
+
+            return True
+
+    def _make_empty(self):
+        """Make the self an empty subtree"""
+        self.weight = 0
+        self._summed_weight = 0
+        self._len = 0
+        self.subtrees = []
+        self.value = []
 
 def _merge_leafs(old_leaves, new_leaves):
     """ Merges two list of already sorted leaves together and returns a new
