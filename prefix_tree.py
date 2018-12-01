@@ -21,6 +21,8 @@ from typing import Any, List, Optional, Tuple
 ################################################################################
 # The Autocompleter ADT
 ################################################################################
+
+
 class Autocompleter:
     """An abstract class representing the Autocompleter Abstract Data Type.
     """
@@ -67,6 +69,8 @@ class Autocompleter:
 ################################################################################
 # SimplePrefixTree (Tasks 1-3)
 ################################################################################
+
+
 class SimplePrefixTree(Autocompleter):
     """A simple prefix tree.
 
@@ -470,6 +474,8 @@ class SimplePrefixTree(Autocompleter):
 ################################################################################
 # CompressedPrefixTree (Task 6)
 ################################################################################
+
+
 class CompressedPrefixTree(Autocompleter):
     """A compressed prefix tree implementation.
 
@@ -955,6 +961,7 @@ def _merge_leafs(old_leaves: List, new_leaves: List) -> List:
 
     return merged_leaves
 
+
 def _share_prefix(a: list, b: list) -> List:
     """ If there is a common prefix amongst <a> and <b>,.
 
@@ -995,6 +1002,7 @@ def _is_prefix(prefix: Any, items: Any) -> bool:
         if p != i:
             return False
     return True
+
 
 if __name__ == '__main__':
     # import doctest
