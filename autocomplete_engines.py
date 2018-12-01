@@ -368,17 +368,17 @@ def sample_melody_autocomplete() -> None:
 
 
 if __name__ == '__main__':
-    # import python_ta
-    # python_ta.check_all(config={
-    #     'allowed-io': ['__init__'],
-    #     'extra-imports': ['csv', 'prefix_tree', 'melody']
-    # })
+    import python_ta
+    python_ta.check_all(config={
+        'allowed-io': ['__init__'],
+        'extra-imports': ['csv', 'prefix_tree', 'melody']
+    })
 
     # This is used to increase the recursion limit so that your sample runs
     # work even for fairly tall simple prefix trees.
     import sys
     sys.setrecursionlimit(5000)
 
-    # print(sample_letter_autocomplete())
-    # print(sample_sentence_autocomplete())
-    # sample_melody_autocomplete()
+    print(sample_letter_autocomplete())
+    print(sample_sentence_autocomplete())
+    sample_melody_autocomplete()
