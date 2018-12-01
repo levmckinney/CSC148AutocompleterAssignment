@@ -384,9 +384,9 @@ if __name__ == '__main__':
 
     # This is used to increase the recursion limit so that your sample runs
     # work even for fairly tall simple prefix trees.
-    # import sys
-    # sys.setrecursionlimit(5000)
-    #
+    import sys
+    sys.setrecursionlimit(5000)
+
     # print(sample_letter_autocomplete())
     # print(sample_sentence_autocomplete())
     # sample_melody_autocomplete()
