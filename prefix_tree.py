@@ -935,6 +935,24 @@ class CompressedPrefixTree(Autocompleter):
             # self is an incompresible subtree
             return True
 
+    def _print_wl(self) -> str:
+        """Return a string representation of this tree.
+        This now includes length in edition to weight.
+        """
+        print(self._all_indented())
+
+    def _all_indented(self, depth: int = 0) -> str:
+        """Return an indented string representation of this tree.
+        The indentation level is specified by the <depth> parameter.
+        """
+        if self.is_empty():
+            return ''
+        else:
+            s = '  ' * depth + f'{self.value} ({self.weight}) ({self._len})\n'
+            for subtree in self.subtrees:
+                s += subtree._all_indented(depth + 1)
+            return s
+
     def _make_empty(self):
         """Make the self an empty subtree"""
         self.weight = 0
